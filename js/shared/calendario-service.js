@@ -43,10 +43,30 @@ export async function agendarEnGoogle(datosReserva) {
 }
 
 /**
- * TODO: Aquí agregaremos la lógica para consultar disponibilidad
- * con la Service Account de Lorena mañana.
+ * Consulta la disponibilidad del negocio usando la Service Account
  */
 export async function consultarDisponibilidadNegocio(fecha) {
-    // Próximo paso: Integración con Service Account
     console.log("Consultando disponibilidad para:", fecha);
+
+    try {
+        const url = `${appConfig.apiUrl}disponibilidad?fecha=${fecha}`;
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-WP-Nonce': appConfig.nonce
+            }
+        });
+
+        if (!response.ok) {
+            console.error("Error al consultar disponibilidad:", response.statusText);
+            return [];
+        }
+
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error("Error de red al consultar disponibilidad:", error);
+        return [];
+    }
 }
