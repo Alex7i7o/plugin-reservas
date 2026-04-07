@@ -1,14 +1,14 @@
 import { inicializarGoogleAuth, loginConGoogle } from './shared/auth.js';
 import { agendarEnGoogle } from './shared/calendario-service.js';
 import { guardarReservaEnWP } from './reservas/wordpress-service.js';
-import { calcularFin } from './shared/utils.js';
+import { calcularFin, escapeHTML } from './shared/utils.js';
 import { obtenerServiciosDesdeWP } from './reservas/servicios-service.js';
 import { 
-    renderizarHorarios, 
     mostrarPantallaExito, 
     llenarSelectServicios, 
     mostrarPaso 
 } from './reservas/reservas-ui.js';
+import { verificarDiaYGenerarHorarios } from './reservas/horarios-logic.js';
 
 // 1. Inicio automático
 inicializarGoogleAuth(appConfig);
@@ -40,14 +40,10 @@ document.getElementById('select-servicios').onchange = (e) => {
         // Si ya hay fecha, refrescamos horarios
         const fechaInput = document.getElementById('fecha-reserva');
         if (fechaInput && fechaInput.value) {
-            // Aquí llamarías a verificarDiaYGenerarHorarios
+            verificarDiaYGenerarHorarios(fechaInput.value);
         }
     }
 };
-
-
-
-// ----------------------------
 
 // 2. Escuchar cuando el usuario elige una fecha
 document.getElementById('fecha-reserva').addEventListener('change', (e) => {

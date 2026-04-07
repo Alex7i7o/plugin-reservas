@@ -35,14 +35,6 @@
     </div>
 
     <div id="exito-section" style="display:none; text-align:center; padding: 40px;"></div>
-
-    <!-- <div id="confirm-section" style="display:none; margin-top: 30px; text-align: center;">
-        <hr>
-        <p id="resumen-reserva" style="font-weight: bold; font-size: 1.1em;"></p>
-        <button id="btn-confirmar-final" class="button button-primary button-large" style="width: 100%; padding: 15px;">
-            Confirmar Reserva
-        </button>
-    </div> -->
 </div>
 
 
