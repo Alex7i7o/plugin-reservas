@@ -51,7 +51,7 @@ export function renderizarHorarios(duracion, config, callbackSeleccion) {
         const tiempo = `${h}:${m}`;
 
         const btn = document.createElement('button');
-        btn.innerText = tiempo;
+        btn.textContent = tiempo;
         btn.className = 'btn-horario';
         btn.onclick = (e) => callbackSeleccion(tiempo, e);
         
