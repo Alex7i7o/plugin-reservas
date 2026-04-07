@@ -22,7 +22,7 @@ export function inicializarGoogleAuth(config) {
 
     // 2. Configuramos el cliente de Google
     tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: config.googleClientId,
+        client_id: appConfig.googleClientId,
         scope: 'https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
         callback: (response) => {
             if (response.access_token) {

@@ -24,7 +24,8 @@ export async function agendarEnGoogle(datosReserva) {
         }
     };
 
-    const response = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+    const calendarId = appConfig.calendarId || 'primary';
+    const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events`, {
         method: 'POST',
         headers: {
             'Authorization': `Bearer ${datosReserva.accessToken}`,
