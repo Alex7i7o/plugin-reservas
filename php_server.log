@@ -1,4 +1,4 @@
-[Tue Apr  7 02:33:27 2026] PHP 8.3.6 Development Server (http://localhost:8080) started
-[Tue Apr  7 02:34:24 2026] [::1]:40950 Accepted
-[Tue Apr  7 02:34:24 2026] [::1]:40950 [200]: GET /
-[Tue Apr  7 02:34:24 2026] [::1]:40950 Closing
+[Tue Apr  7 16:08:11 2026] PHP 8.3.6 Development Server (http://localhost:8080) started
+[Tue Apr  7 16:08:23 2026] [::1]:44578 Accepted
+[Tue Apr  7 16:08:23 2026] [::1]:44578 [200]: GET /wp-json/wp/v2/disponibilidad?fecha=2024-01-01
+[Tue Apr  7 16:08:23 2026] [::1]:44578 Closing
