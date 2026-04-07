@@ -208,7 +208,63 @@ add_action('rest_api_init', function () {
         'callback' => 'guardar_reserva_callback',
         'permission_callback' => '__return_true', 
     ));
+
+    register_rest_route('wp/v2', '/disponibilidad', array(
+        'methods' => 'GET',
+        'callback' => 'consultar_disponibilidad_callback',
+        'permission_callback' => '__return_true',
+    ));
 });
+
+function consultar_disponibilidad_callback($request) {
+    $fecha = sanitize_text_field($request->get_param('fecha'));
+
+    if (empty($fecha)) {
+        return new WP_Error('falta_fecha', 'Se requiere el parámetro fecha', array('status' => 400));
+    }
+
+    try {
+        $client = new Google\Client();
+        // Asegúrate de reemplazar 'path_to_credentials_json' con la ruta real al JSON de la Service Account
+        $client->setAuthConfig(WP_CONTENT_DIR . '/credentials.json');
+        $client->addScope(Google\Service\Calendar::CALENDAR_READONLY);
+
+        $service = new Google\Service\Calendar($client);
+        $calendarId = 'primary'; // O el ID de calendario del negocio
+
+        $optParams = array(
+            'timeMin' => date('c', strtotime($fecha . ' 00:00:00')),
+            'timeMax' => date('c', strtotime($fecha . ' 23:59:59')),
+            'singleEvents' => true,
+            'orderBy' => 'startTime',
+        );
+
+        $results = $service->events->listEvents($calendarId, $optParams);
+        $eventos = $results->getItems();
+
+        $ocupados = array();
+        foreach ($eventos as $evento) {
+            $start = $evento->start->dateTime;
+            if (empty($start)) {
+                $start = $evento->start->date;
+            }
+            $end = $evento->end->dateTime;
+            if (empty($end)) {
+                $end = $evento->end->date;
+            }
+
+            $ocupados[] = array(
+                'inicio' => date('H:i', strtotime($start)),
+                'fin' => date('H:i', strtotime($end))
+            );
+        }
+
+        return new WP_REST_Response($ocupados, 200);
+
+    } catch (Exception $e) {
+        return new WP_Error('error_google_api', 'No se pudo consultar el calendario', array('status' => 500, 'details' => $e->getMessage()));
+    }
+}
 
 // 2. La función que procesa los datos
 function guardar_reserva_callback($request) {
