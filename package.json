@@ -1,0 +1,24 @@
+{
+  "name": "app",
+  "version": "1.0.0",
+  "description": "Este es un plugin personalizado para WordPress diseñado para gestionar las reservas de un negocio (estetica - pilates). El sistema utiliza una arquitectura desacoplada con un backend en WordPress y un frontend dinámico basado en módulos de JavaScript.",
+  "main": "index.js",
+  "scripts": {
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Alex7i7o/plugin-reservas.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "devDependencies": {
+    "jest": "^29.7.0"
+  },
+  "bugs": {
+    "url": "https://github.com/Alex7i7o/plugin-reservas/issues"
+  },
+  "homepage": "https://github.com/Alex7i7o/plugin-reservas#readme"
+}
