@@ -19,6 +19,69 @@ if( function_exists('acf_add_options_page') ) {
 // Evitar acceso directo
 if (!defined('ABSPATH')) exit;
 
+// --- Opciones de Configuración de Google ---
+function sr_registrar_ajustes() {
+    register_setting('sr_config_reservas_group', 'sr_google_client_id');
+    register_setting('sr_config_reservas_group', 'sr_service_account_email', 'sanitize_email');
+    register_setting('sr_config_reservas_group', 'sr_service_account_private_key');
+    register_setting('sr_config_reservas_group', 'sr_calendar_id');
+}
+add_action('admin_init', 'sr_registrar_ajustes');
+
+function sr_agregar_menu_ajustes() {
+    add_options_page(
+        'Configuración de Reservas',
+        'Configuración de Reservas',
+        'manage_options',
+        'sr-configuracion-reservas',
+        'sr_renderizar_pagina_ajustes'
+    );
+}
+add_action('admin_menu', 'sr_agregar_menu_ajustes');
+
+function sr_renderizar_pagina_ajustes() {
+    ?>
+    <div class="wrap">
+        <h1>Configuración de Reservas</h1>
+        <form method="post" action="options.php">
+            <?php settings_fields('sr_config_reservas_group'); ?>
+            <?php do_settings_sections('sr_config_reservas_group'); ?>
+            <table class="form-table">
+                <tr valign="top">
+                    <th scope="row">Google Client ID (Login)</th>
+                    <td>
+                        <input type="text" name="sr_google_client_id" value="<?php echo esc_attr(get_option('sr_google_client_id')); ?>" class="regular-text" />
+                    </td>
+                </tr>
+                <tr valign="top">
+                    <th scope="row">Email de la Service Account</th>
+                    <td>
+                        <input type="email" name="sr_service_account_email" value="<?php echo esc_attr(get_option('sr_service_account_email')); ?>" class="regular-text" />
+                    </td>
+                </tr>
+                <tr valign="top">
+                    <th scope="row">Private Key de la Service Account</th>
+                    <td>
+                        <textarea name="sr_service_account_private_key" rows="5" class="large-text code"><?php echo esc_textarea(get_option('sr_service_account_private_key')); ?></textarea>
+                        <p class="description">El bloque completo del JSON, incluyendo -----BEGIN PRIVATE KEY----- y -----END PRIVATE KEY-----</p>
+                    </td>
+                </tr>
+                <tr valign="top">
+                    <th scope="row">ID del Calendario de Google</th>
+                    <td>
+                        <input type="text" name="sr_calendar_id" value="<?php echo esc_attr(get_option('sr_calendar_id')); ?>" class="regular-text" />
+                        <p class="description">El email del calendario principal (ej. primary o email@gmail.com)</p>
+                    </td>
+                </tr>
+            </table>
+            <?php submit_button(); ?>
+        </form>
+    </div>
+    <?php
+}
+// ------------------------------------------
+
+
 // Aquí irá el código de los CPT
 function crear_cpt_servicios() {
     $labels = array(
@@ -130,9 +193,16 @@ function encolar_scripts_reservas() {
     }
 
     // 2. Localizamos los datos en 'reserva-main'
+    $client_id = get_option('sr_google_client_id', '57411239751-805cvkqrq4i46f0n37abslrqfkbrtg42.apps.googleusercontent.com');
+    if (empty($client_id)) $client_id = '57411239751-805cvkqrq4i46f0n37abslrqfkbrtg42.apps.googleusercontent.com';
+
+    $calendar_id = get_option('sr_calendar_id', 'primary');
+    if (empty($calendar_id)) $calendar_id = 'primary';
+
     wp_localize_script('reserva-main', 'appConfig', array(
         'apiUrl' => rest_url('wp/v2/'),
-        'googleClientId' => '57411239751-805cvkqrq4i46f0n37abslrqfkbrtg42.apps.googleusercontent.com',
+        'googleClientId' => $client_id,
+        'calendarId' => $calendar_id,
         'nonce'  => wp_create_nonce('wp_rest'),
         'horariosSemana' => $config_semana
     ));
@@ -154,7 +224,12 @@ add_filter('script_loader_tag', function($tag, $handle, $src) {
 // Ejemplo conceptual de la función en PHP
 function insertar_en_calendario_negocio($reserva_data) {
     $client = new Google\Client();
-    $client->setAuthConfig(path_to_credentials_json); // Tu archivo de credenciales
+    $authConfig = array(
+        'type'         => 'service_account',
+        'client_email' => get_option('sr_service_account_email'),
+        'private_key'  => get_option('sr_service_account_private_key'),
+    );
+    $client->setAuthConfig($authConfig);
     $client->addScope(Google\Service\Calendar::CALENDAR_EVENTS);
     
     $service = new Google\Service\Calendar($client);
@@ -164,7 +239,8 @@ function insertar_en_calendario_negocio($reserva_data) {
         'end' => array('dateTime' => $reserva_data['fin']),
     ));
 
-    $calendarId = 'primary'; // O el mail de Lorena
+    $calendarId = get_option('sr_calendar_id', 'primary');
+    if (empty($calendarId)) $calendarId = 'primary';
     $service->events->insert($calendarId, $event);
 }
 
@@ -200,12 +276,17 @@ function consultar_disponibilidad_callback($request) {
 
     try {
         $client = new Google\Client();
-        // Asegúrate de reemplazar 'path_to_credentials_json' con la ruta real al JSON de la Service Account
-        $client->setAuthConfig(WP_CONTENT_DIR . '/credentials.json');
+        $authConfig = array(
+            'type'         => 'service_account',
+            'client_email' => get_option('sr_service_account_email'),
+            'private_key'  => get_option('sr_service_account_private_key'),
+        );
+        $client->setAuthConfig($authConfig);
         $client->addScope(Google\Service\Calendar::CALENDAR_READONLY);
 
         $service = new Google\Service\Calendar($client);
-        $calendarId = 'primary'; // O el ID de calendario del negocio
+        $calendarId = get_option('sr_calendar_id', 'primary');
+        if (empty($calendarId)) $calendarId = 'primary';
 
         $freebusyReq = new Google\Service\Calendar\FreeBusyRequest();
         $freebusyReq->setTimeMin(date('c', strtotime($fecha . ' 00:00:00')));
