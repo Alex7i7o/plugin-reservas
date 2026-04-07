@@ -28,14 +28,14 @@ const callback = () => {};
 
 // Warmup
 for(let i=0; i<1000; i++) {
-    renderizarHorarios(duracion, config, callback);
+    renderizarHorarios(duracion, config, callback, []);
 }
 
 // Measure
 const iterations = 50000;
 const start = performance.now();
 for(let i=0; i<iterations; i++) {
-    renderizarHorarios(duracion, config, callback);
+    renderizarHorarios(duracion, config, callback, []);
 }
 const end = performance.now();
 

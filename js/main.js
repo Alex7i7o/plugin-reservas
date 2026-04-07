@@ -40,14 +40,14 @@ document.getElementById('select-servicios').onchange = (e) => {
         // Si ya hay fecha, refrescamos horarios
         const fechaInput = document.getElementById('fecha-reserva');
         if (fechaInput && fechaInput.value) {
-            verificarDiaYGenerarHorarios(fechaInput.value);
+            verificarDiaYGenerarHorarios(fechaInput.value).catch(err => console.error("Error al generar horarios:", err));
         }
     }
 };
 
 // 2. Escuchar cuando el usuario elige una fecha
 document.getElementById('fecha-reserva').addEventListener('change', (e) => {
-    verificarDiaYGenerarHorarios(e.target.value);
+    verificarDiaYGenerarHorarios(e.target.value).catch(err => console.error("Error al generar horarios:", err));
 });
 
 
