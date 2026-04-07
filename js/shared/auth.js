@@ -4,6 +4,11 @@
 let tokenClient;
 
 export function inicializarGoogleAuth(config) {
+    if (typeof google === 'undefined') {
+        console.error("La librería de Google no ha cargado aún. Reintentando...");
+        setTimeout(() => inicializarGoogleAuth(config), 500); // Reintenta en medio segundo
+        return;
+    }
     // 1. Verificamos si hay sesión previa
     const sesionGuardada = sessionStorage.getItem('userSesion');
     if (sesionGuardada) {
