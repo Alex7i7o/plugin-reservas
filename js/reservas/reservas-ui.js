@@ -30,15 +30,17 @@ export function renderizarHorarios(duracion, config, callbackSeleccion) {
     
     contenedor.innerHTML = ''; 
 
-    let [hI, mI] = config.ap.split(':').map(Number);
-    let [hF, mF] = config.ci.split(':').map(Number);
-    let [hBi, mBi] = config.br_i.split(':').map(Number);
-    let [hBf, mBf] = config.br_f.split(':').map(Number);
+    const parseMinutes = str => {
+        const [h, m] = str.split(':');
+        return parseInt(h, 10) * 60 + parseInt(m, 10);
+    };
 
-    let actual = hI * 60 + mI;
-    let fin = hF * 60 + mF;
-    let breakInicio = hBi * 60 + mBi;
-    let breakFin = hBf * 60 + mBf;
+    let actual = parseMinutes(config.ap);
+    let fin = parseMinutes(config.ci);
+    let breakInicio = parseMinutes(config.br_i);
+    let breakFin = parseMinutes(config.br_f);
+
+    const fragment = document.createDocumentFragment();
 
     while (actual + duracion <= fin) {
         if (actual + duracion > breakInicio && actual < breakFin) {
@@ -55,9 +57,11 @@ export function renderizarHorarios(duracion, config, callbackSeleccion) {
         btn.className = 'btn-horario';
         btn.onclick = (e) => callbackSeleccion(tiempo, e);
         
-        contenedor.appendChild(btn);
+        fragment.appendChild(btn);
         actual += duracion;
     }
+
+    contenedor.appendChild(fragment);
 }
 
 /**
