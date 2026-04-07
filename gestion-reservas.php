@@ -147,14 +147,27 @@ function encolar_scripts_reservas() {
     $dias_map = ['monday' => 'lun', 'tuesday' => 'mar', 'wednesday' => 'mie', 'thursday' => 'jue', 'friday' => 'vie', 'saturday' => 'sab', 'sunday' => 'dom'];
     $config_semana = array();
 
-    foreach ($dias_map as $eng => $esp) {
-        $config_semana[$eng] = array(
-            'ap' => get_field($esp.'_ap', $id),
-            'ci' => get_field($esp.'_ci', $id),
-            'br_i' => get_field($esp.'_br_i', $id),
-            'br_f' => get_field($esp.'_br_f', $id),
-            'activo' => get_field($esp.'_status', $id)
-        );
+    $all_fields = get_fields($id);
+    if (is_array($all_fields)) {
+        foreach ($dias_map as $eng => $esp) {
+            $config_semana[$eng] = array(
+                'ap' => isset($all_fields[$esp.'_ap']) ? $all_fields[$esp.'_ap'] : null,
+                'ci' => isset($all_fields[$esp.'_ci']) ? $all_fields[$esp.'_ci'] : null,
+                'br_i' => isset($all_fields[$esp.'_br_i']) ? $all_fields[$esp.'_br_i'] : null,
+                'br_f' => isset($all_fields[$esp.'_br_f']) ? $all_fields[$esp.'_br_f'] : null,
+                'activo' => isset($all_fields[$esp.'_status']) ? $all_fields[$esp.'_status'] : null
+            );
+        }
+    } else {
+        foreach ($dias_map as $eng => $esp) {
+            $config_semana[$eng] = array(
+                'ap' => get_field($esp.'_ap', $id),
+                'ci' => get_field($esp.'_ci', $id),
+                'br_i' => get_field($esp.'_br_i', $id),
+                'br_f' => get_field($esp.'_br_f', $id),
+                'activo' => get_field($esp.'_status', $id)
+            );
+        }
     }
 
     // 2. Localizamos los datos en 'reserva-main'
@@ -208,7 +221,63 @@ add_action('rest_api_init', function () {
         'callback' => 'guardar_reserva_callback',
         'permission_callback' => '__return_true', 
     ));
+
+    register_rest_route('wp/v2', '/disponibilidad', array(
+        'methods' => 'GET',
+        'callback' => 'consultar_disponibilidad_callback',
+        'permission_callback' => '__return_true',
+    ));
 });
+
+function consultar_disponibilidad_callback($request) {
+    $fecha = sanitize_text_field($request->get_param('fecha'));
+
+    if (empty($fecha)) {
+        return new WP_Error('falta_fecha', 'Se requiere el parámetro fecha', array('status' => 400));
+    }
+
+    try {
+        $client = new Google\Client();
+        // Asegúrate de reemplazar 'path_to_credentials_json' con la ruta real al JSON de la Service Account
+        $client->setAuthConfig(WP_CONTENT_DIR . '/credentials.json');
+        $client->addScope(Google\Service\Calendar::CALENDAR_READONLY);
+
+        $service = new Google\Service\Calendar($client);
+        $calendarId = 'primary'; // O el ID de calendario del negocio
+
+        $optParams = array(
+            'timeMin' => date('c', strtotime($fecha . ' 00:00:00')),
+            'timeMax' => date('c', strtotime($fecha . ' 23:59:59')),
+            'singleEvents' => true,
+            'orderBy' => 'startTime',
+        );
+
+        $results = $service->events->listEvents($calendarId, $optParams);
+        $eventos = $results->getItems();
+
+        $ocupados = array();
+        foreach ($eventos as $evento) {
+            $start = $evento->start->dateTime;
+            if (empty($start)) {
+                $start = $evento->start->date;
+            }
+            $end = $evento->end->dateTime;
+            if (empty($end)) {
+                $end = $evento->end->date;
+            }
+
+            $ocupados[] = array(
+                'inicio' => date('H:i', strtotime($start)),
+                'fin' => date('H:i', strtotime($end))
+            );
+        }
+
+        return new WP_REST_Response($ocupados, 200);
+
+    } catch (Exception $e) {
+        return new WP_Error('error_google_api', 'No se pudo consultar el calendario', array('status' => 500, 'details' => $e->getMessage()));
+    }
+}
 
 // 2. La función que procesa los datos
 function guardar_reserva_callback($request) {
