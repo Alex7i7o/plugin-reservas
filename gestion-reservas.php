@@ -175,11 +175,12 @@ function insertar_en_calendario_negocio($reserva_data) {
 
 // 1. Registramos la ruta correctamente
 add_action('rest_api_init', function () {
-    register_rest_route('wp/v2', '/reservas', array( // Cambiamos a wp/v2 para coincidir con tu JS
+    register_rest_route('wp/v2', '/reserva', array( // Cambiamos a wp/v2 para coincidir con tu JS
         'methods' => 'POST',
         'callback' => 'guardar_reserva_callback',
         'permission_callback' => function ($request) {
-            return wp_verify_nonce($request->get_header('x_wp_nonce'), 'wp_rest');
+            $nonce = $request->get_header('x_wp_nonce');
+            return wp_verify_nonce($nonce, 'wp_rest') ? true : new WP_Error('rest_forbidden', 'Nonce inválido', array('status' => 401));
         },
     ));
 
