@@ -207,31 +207,34 @@ function consultar_disponibilidad_callback($request) {
         $service = new Google\Service\Calendar($client);
         $calendarId = 'primary'; // O el ID de calendario del negocio
 
-        $optParams = array(
-            'timeMin' => date('c', strtotime($fecha . ' 00:00:00')),
-            'timeMax' => date('c', strtotime($fecha . ' 23:59:59')),
-            'singleEvents' => true,
-            'orderBy' => 'startTime',
-        );
+        $freebusyReq = new Google\Service\Calendar\FreeBusyRequest();
+        $freebusyReq->setTimeMin(date('c', strtotime($fecha . ' 00:00:00')));
+        $freebusyReq->setTimeMax(date('c', strtotime($fecha . ' 23:59:59')));
+        $freebusyReq->setTimeZone('America/Argentina/Buenos_Aires');
 
-        $results = $service->events->listEvents($calendarId, $optParams);
-        $eventos = $results->getItems();
+        $item = new Google\Service\Calendar\FreeBusyRequestItem();
+        $item->setId($calendarId);
+        $freebusyReq->setItems(array($item));
+
+        $freebusyRes = $service->freebusy->query($freebusyReq);
+        $calendars = $freebusyRes->getCalendars();
 
         $ocupados = array();
-        foreach ($eventos as $evento) {
-            $start = $evento->start->dateTime;
-            if (empty($start)) {
-                $start = $evento->start->date;
-            }
-            $end = $evento->end->dateTime;
-            if (empty($end)) {
-                $end = $evento->end->date;
-            }
+        if (isset($calendars[$calendarId])) {
+            $busy_periods = $calendars[$calendarId]->getBusy();
+            if (!empty($busy_periods)) {
+                foreach ($busy_periods as $period) {
+                    $start = new \DateTime($period->getStart());
+                    $start->setTimezone(new \DateTimeZone('America/Argentina/Buenos_Aires'));
+                    $end = new \DateTime($period->getEnd());
+                    $end->setTimezone(new \DateTimeZone('America/Argentina/Buenos_Aires'));
 
-            $ocupados[] = array(
-                'inicio' => date('H:i', strtotime($start)),
-                'fin' => date('H:i', strtotime($end))
-            );
+                    $ocupados[] = array(
+                        'inicio' => $start->format('H:i'),
+                        'fin' => $end->format('H:i')
+                    );
+                }
+            }
         }
 
         return new WP_REST_Response($ocupados, 200);

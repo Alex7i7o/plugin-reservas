@@ -1,6 +1,7 @@
 import { renderizarHorarios } from './reservas-ui.js';
+import { consultarDisponibilidadNegocio } from '../shared/calendario-service.js';
 
-export function verificarDiaYGenerarHorarios(fechaSeleccionada) {
+export async function verificarDiaYGenerarHorarios(fechaSeleccionada) {
 
     // 1. Convertimos la fecha para saber qué día de la semana es
     const dateObj = new Date(fechaSeleccionada + 'T00:00:00');
@@ -15,8 +16,11 @@ export function verificarDiaYGenerarHorarios(fechaSeleccionada) {
         const select = document.getElementById('select-servicios');
         const duracion = parseInt(select.selectedOptions[0].getAttribute('data-duracion')) || 60;
 
+        // Obtenemos los horarios ocupados
+        const ocupados = await consultarDisponibilidadNegocio(fechaSeleccionada);
+
         // Llamamos a la nueva función
-        renderizarHorarios(duracion, config, seleccionarHorario);
+        renderizarHorarios(duracion, config, seleccionarHorario, ocupados);
         document.getElementById('horarios-container').style.display = 'block';
     } else {
         // Si config.activo es false, el negocio está cerrado

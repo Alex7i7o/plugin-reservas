@@ -24,7 +24,7 @@ export function mostrarPaso(pasoId) {
 /**
  * Genera la grilla de botones de horarios
  */
-export function renderizarHorarios(duracion, config, callbackSeleccion) {
+export function renderizarHorarios(duracion, config, callbackSeleccion, ocupados = []) {
     const contenedor = document.getElementById('grid-horarios');
     if (!contenedor) return;
     
@@ -40,11 +40,28 @@ export function renderizarHorarios(duracion, config, callbackSeleccion) {
     let breakInicio = parseMinutes(config.br_i);
     let breakFin = parseMinutes(config.br_f);
 
+    const ocupadosMinutos = ocupados.map(o => ({
+        inicio: parseMinutes(o.inicio),
+        fin: parseMinutes(o.fin)
+    }));
+
     const fragment = document.createDocumentFragment();
 
     while (actual + duracion <= fin) {
         if (actual + duracion > breakInicio && actual < breakFin) {
             actual = breakFin;
+            continue;
+        }
+
+        const turnoFin = actual + duracion;
+
+        // Comprobar si hay solapamiento con algún evento ocupado
+        const estaOcupado = ocupadosMinutos.some(ocupado => {
+            return (actual < ocupado.fin) && (turnoFin > ocupado.inicio);
+        });
+
+        if (estaOcupado) {
+            actual += duracion;
             continue;
         }
 
