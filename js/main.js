@@ -1,7 +1,7 @@
 import { inicializarGoogleAuth, loginConGoogle } from './shared/auth.js';
 import { agendarEnGoogle } from './shared/calendario-service.js';
 import { guardarReservaEnWP } from './reservas/wordpress-service.js';
-import { calcularFin } from './shared/utils.js';
+import { calcularFin, escapeHTML } from './shared/utils.js';
 import { obtenerServiciosDesdeWP } from './reservas/servicios-service.js';
 import { 
     mostrarPantallaExito, 

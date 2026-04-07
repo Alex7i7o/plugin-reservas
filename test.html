@@ -1,0 +1,28 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+</head>
+<body>
+    <div id="grid-horarios"></div>
+    <script type="module">
+        import { renderizarHorarios } from './js/reservas/reservas-ui.js';
+
+        const config = {
+            ap: '08:00',
+            ci: '20:00',
+            br_i: '13:00',
+            br_f: '14:00'
+        };
+
+        const duracion = 30;
+
+        window.onload = () => {
+            renderizarHorarios(duracion, config, () => {});
+            // Notify when done
+            window.rendered = true;
+        };
+    </script>
+</body>
+</html>
