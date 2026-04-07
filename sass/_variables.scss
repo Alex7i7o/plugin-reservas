@@ -1,0 +1,17 @@
+// Variables de Marca
+$primary-color: #ff6b00; // Tu naranja actual
+$secondary-color: #333333;
+$bg-light: #f9f9f9;
+$white: #ffffff;
+$border-radius: 10px;
+$transition: all 0.3s ease;
+
+// Variables CSS (Para la futura funcionalidad dinámica)
+:root {
+  // Estas variables las podrá sobreescribir el cliente
+  --primary-color: #ff6b00; 
+  --border-radius: 8px;
+  --logo-width: 200px;
+}
+
+$p-color: var(--primary-color);
