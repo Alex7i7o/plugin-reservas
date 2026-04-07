@@ -87,47 +87,6 @@ add_shortcode('mi_app_reservas', 'mostrar_mi_app_reservas');
 
 
 
-// -------------------------
-
-
-// // 2. Encolado de Scripts y Localización de Datos (Solución al Fatal Error)
-// function encolar_scripts_reservas() {
-//     wp_enqueue_script('mi-logica-reservas', plugins_url( '/js/main.js', __FILE__ ), array(), '1.0.1', true);
-
-//     // Intentamos traer los datos de ACF
-//     $apertura = get_field('apertura', '2'); 
-//     $cierre   = get_field('cierre', '2');   // este esta en la url al edirla
-//     $dias     = get_field('dias_laborales', '2'); // aparece como: post=2
-
-//     // LOG DE DEBUG (Esto saldrá en tu consola para que veas qué llega)
-//     // Si estos valores salen vacíos, es que ACF no los está encontrando
-//     wp_localize_script('mi-logica-reservas', 'appConfig', array(
-//         'apiUrl'         => rest_url('wp/v2/'), 
-//         'nonce'          => wp_create_nonce('wp_rest'),
-//         'googleClientId' => '57411239751-805cvkqrq4i46f0n37abslrqfkbrtg42.apps.googleusercontent.com',
-//         'ajustes'        => array(
-//             'apertura' => $apertura ?: '09:00', // Si falla ACF, vuelve al default
-//             'cierre'   => $cierre ?: '18:00',
-//             'dias'     => !empty($dias) ? $dias : array('Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes')
-//         )
-//     ));
-// }
-// add_action('wp_enqueue_scripts', 'encolar_scripts_reservas');
-
-// // 3. Opcional: Crear la página de opciones de ACF si no existe
-// if( function_exists('acf_add_options_page') ) {
-//     acf_add_options_page(array(
-//         'page_title'    => 'Ajustes de Reserva',
-//         'menu_title'    => 'Ajustes de Reserva',
-//         'menu_slug'     => 'ajustes-reserva',
-//         'capability'    => 'edit_posts',
-//         'redirect'      => false
-//     ));
-// }
-
-
-// ---------------------------------------------------------------------------------
-
 // Carga de modulos
 
 function encolar_scripts_reservas() {
