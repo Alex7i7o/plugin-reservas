@@ -285,9 +285,15 @@ function consultar_disponibilidad_callback($request) {
 function guardar_reserva_callback($request) {
     $parametros = $request->get_json_params();
     
+    // Sanitización de entradas
+    $email    = isset($parametros['email']) ? sanitize_email($parametros['email']) : '';
+    $hora     = isset($parametros['hora']) ? sanitize_text_field($parametros['hora']) : '';
+    $fecha    = isset($parametros['fecha']) ? sanitize_text_field($parametros['fecha']) : '';
+    $servicio = isset($parametros['servicio']) ? sanitize_text_field($parametros['servicio']) : '';
+
     // IMPORTANTE: Asegurate de tener el CPT 'reserva' creado
     $post_id = wp_insert_post(array(
-        'post_title'   => 'Reserva: ' . $parametros['email'] . ' - ' . $parametros['hora'],
+        'post_title'   => 'Reserva: ' . $email . ' - ' . $hora,
         'post_type'    => 'reserva', // Verifica que este slug sea el correcto en tu CPT
         'post_status'  => 'publish',
     ));
@@ -295,10 +301,10 @@ function guardar_reserva_callback($request) {
     if ($post_id) {
         // Guardamos los datos en ACF. 
         // Nota: El tercer parámetro es el post_id
-        update_field('email_cliente', $parametros['email'], $post_id);
-        update_field('fecha', $parametros['fecha'], $post_id);
-        update_field('hora', $parametros['hora'], $post_id);
-        update_field('servicio', $parametros['servicio'], $post_id);
+        update_field('email_cliente', $email, $post_id);
+        update_field('fecha', $fecha, $post_id);
+        update_field('hora', $hora, $post_id);
+        update_field('servicio', $servicio, $post_id);
         
         return new WP_REST_Response(array('message' => 'Reserva guardada', 'id' => $post_id), 200);
     }
