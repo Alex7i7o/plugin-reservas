@@ -77,11 +77,24 @@ export function mostrarPantallaExito() {
     const exitoSection = document.getElementById('exito-section');
     if (exitoSection) {
         exitoSection.style.display = 'block';
-        exitoSection.innerHTML = `
-            <h3>¡Reserva Realizada con éxito!</h3>
-            <p>Se envió un recordatorio a tu Google Calendar.</p>
-            <button onclick="location.reload()" class="btn-exito">Volver a reservar</button>
-        `;
+
+        // Clear existing content safely
+        exitoSection.textContent = '';
+
+        const h3 = document.createElement('h3');
+        h3.textContent = '¡Reserva Realizada con éxito!';
+        exitoSection.appendChild(h3);
+
+        const p = document.createElement('p');
+        p.textContent = 'Se envió un recordatorio a tu Google Calendar.';
+        exitoSection.appendChild(p);
+
+        const btn = document.createElement('button');
+        btn.className = 'btn-exito';
+        btn.textContent = 'Volver a reservar';
+        btn.onclick = () => location.reload();
+        exitoSection.appendChild(btn);
+
         exitoSection.scrollIntoView({ behavior: 'smooth' });
     }
 }
