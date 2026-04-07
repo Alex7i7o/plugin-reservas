@@ -1,7 +1,7 @@
 import { inicializarGoogleAuth, loginConGoogle } from './shared/auth.js';
 import { agendarEnGoogle } from './shared/calendario-service.js';
 import { guardarReservaEnWP } from './reservas/wordpress-service.js';
-import { calcularFin } from './shared/utils.js';
+import { calcularFin, escapeHTML } from './shared/utils.js';
 import { obtenerServiciosDesdeWP } from './reservas/servicios-service.js';
 import { 
     renderizarHorarios, 
@@ -101,9 +101,9 @@ function seleccionarHorario(hora, event) {
     // 4. Mostramos el resumen para que el cliente esté seguro
     const resumenTexto = document.getElementById('resumen-texto');
     resumenTexto.innerHTML = `
-        <strong>Servicio:</strong> ${window.servicioSeleccionado}<br>
-        <strong>Día:</strong> ${window.fechaSeleccionada}<br>
-        <strong>Hora:</strong> ${window.horarioSeleccionado} hs.
+        <strong>Servicio:</strong> ${escapeHTML(window.servicioSeleccionado)}<br>
+        <strong>Día:</strong> ${escapeHTML(window.fechaSeleccionada)}<br>
+        <strong>Hora:</strong> ${escapeHTML(window.horarioSeleccionado)} hs.
     `;
 
     // 5. Scroll suave hasta el botón para que el usuario lo vea (opcional)
