@@ -44,11 +44,19 @@ export function seleccionarHorario(hora, event) {
 
     // 4. Mostramos el resumen para que el cliente esté seguro
     const resumenTexto = document.getElementById('resumen-texto');
-    resumenTexto.innerHTML = `
-        <strong>Servicio:</strong> ${window.servicioSeleccionado}<br>
-        <strong>Día:</strong> ${window.fechaSeleccionada}<br>
-        <strong>Hora:</strong> ${window.horarioSeleccionado} hs.
-    `;
+    resumenTexto.textContent = ''; // Limpiamos
+
+    const crearLineaResumen = (etiqueta, valor) => {
+        const strong = document.createElement('strong');
+        strong.textContent = etiqueta + ':';
+        resumenTexto.appendChild(strong);
+        resumenTexto.appendChild(document.createTextNode(` ${valor}`));
+        resumenTexto.appendChild(document.createElement('br'));
+    };
+
+    crearLineaResumen('Servicio', window.servicioSeleccionado);
+    crearLineaResumen('Día', window.fechaSeleccionada);
+    crearLineaResumen('Hora', `${window.horarioSeleccionado} hs.`);
 
     // 5. Scroll suave hasta el botón para que el usuario lo vea (opcional)
     confirmSection.scrollIntoView({ behavior: 'smooth' });
