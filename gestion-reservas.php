@@ -276,10 +276,13 @@ function consultar_disponibilidad_callback($request) {
 
     try {
         $client = new Google\Client();
+        $private_key = get_option('sr_service_account_private_key');
+        $private_key = str_replace("\\n", "\n", $private_key);
+
         $authConfig = array(
             'type'         => 'service_account',
             'client_email' => get_option('sr_service_account_email'),
-            'private_key'  => get_option('sr_service_account_private_key'),
+            'private_key'  => $private_key,
         );
         $client->setAuthConfig($authConfig);
         $client->addScope(Google\Service\Calendar::CALENDAR_READONLY);
@@ -321,7 +324,7 @@ function consultar_disponibilidad_callback($request) {
         return new WP_REST_Response($ocupados, 200);
 
     } catch (Exception $e) {
-        return new WP_Error('error_google_api', 'No se pudo consultar el calendario', array('status' => 500, 'details' => $e->getMessage()));
+        wp_send_json_error( array( 'message' => $e->getMessage() ) );
     }
 }
 
