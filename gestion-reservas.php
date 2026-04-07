@@ -206,7 +206,9 @@ add_action('rest_api_init', function () {
     register_rest_route('wp/v2', '/reservas', array( // Cambiamos a wp/v2 para coincidir con tu JS
         'methods' => 'POST',
         'callback' => 'guardar_reserva_callback',
-        'permission_callback' => '__return_true', 
+        'permission_callback' => function ($request) {
+            return wp_verify_nonce($request->get_header('x_wp_nonce'), 'wp_rest');
+        },
     ));
 });
 
