@@ -4,11 +4,11 @@ import { guardarReservaEnWP } from './reservas/wordpress-service.js';
 import { calcularFin, escapeHTML } from './shared/utils.js';
 import { obtenerServiciosDesdeWP } from './reservas/servicios-service.js';
 import { 
-    renderizarHorarios, 
     mostrarPantallaExito, 
     llenarSelectServicios, 
     mostrarPaso 
 } from './reservas/reservas-ui.js';
+import { verificarDiaYGenerarHorarios } from './reservas/horarios-logic.js';
 
 // 1. Inicio automático
 inicializarGoogleAuth(appConfig);
@@ -40,78 +40,16 @@ document.getElementById('select-servicios').onchange = (e) => {
         // Si ya hay fecha, refrescamos horarios
         const fechaInput = document.getElementById('fecha-reserva');
         if (fechaInput && fechaInput.value) {
-            // Aquí llamarías a verificarDiaYGenerarHorarios
+            verificarDiaYGenerarHorarios(fechaInput.value);
         }
     }
 };
-
-
-
-// ----------------------------
 
 // 2. Escuchar cuando el usuario elige una fecha
 document.getElementById('fecha-reserva').addEventListener('change', (e) => {
     verificarDiaYGenerarHorarios(e.target.value);
 });
 
-
-
-function verificarDiaYGenerarHorarios(fechaSeleccionada) {
-    
-    // 1. Convertimos la fecha para saber qué día de la semana es
-    const dateObj = new Date(fechaSeleccionada + 'T00:00:00');
-    const diaIngles = new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(dateObj).toLowerCase();
-    const diaEspañol = new Intl.DateTimeFormat('es-ES', { weekday: 'long' }).format(dateObj).toLowerCase();
-    
-    // 2. Buscamos la configuración específica de ese día (ej: 'monday')
-    const config = appConfig.horariosSemana[diaIngles];
-
-    // 3. Verificamos si existe la configuración y si el 'status' es true (activo)
-    if (config && config.activo) {
-        const select = document.getElementById('select-servicios');
-        const duracion = parseInt(select.selectedOptions[0].getAttribute('data-duracion')) || 60;
-        
-        // Llamamos a la nueva función
-        renderizarHorarios(duracion, config, seleccionarHorario);
-        document.getElementById('horarios-container').style.display = 'block';
-    } else {
-        // Si config.activo es false, el negocio está cerrado
-        alert("Lo sentimos, el negocio permanece cerrado el día " + diaEspañol);
-        document.getElementById('horarios-container').style.display = 'none';
-    }
-}
-
-// Seleccionador de Horarios 
-function seleccionarHorario(hora, event) {
-    // 1. Estética: Marcamos el botón seleccionado
-    document.querySelectorAll('.btn-horario').forEach(b => b.classList.remove('selected'));
-    event.target.classList.add('selected');
-
-    // 2. Guardamos la elección en nuestras variables globales
-    window.horarioSeleccionado = hora;
-    window.fechaSeleccionada = document.getElementById('fecha-reserva').value;
-    
-    const select = document.getElementById('select-servicios');
-    window.servicioSeleccionado = select.options[select.selectedIndex].text;
-
-    // 3. ¡La clave! Cambiamos el display de 'none' a 'block'
-    const confirmSection = document.getElementById('confirmacion-section');
-    confirmSection.style.display = 'block';
-
-    // 4. Mostramos el resumen para que el cliente esté seguro
-    const resumenTexto = document.getElementById('resumen-texto');
-    resumenTexto.innerHTML = `
-        <strong>Servicio:</strong> ${escapeHTML(window.servicioSeleccionado)}<br>
-        <strong>Día:</strong> ${escapeHTML(window.fechaSeleccionada)}<br>
-        <strong>Hora:</strong> ${escapeHTML(window.horarioSeleccionado)} hs.
-    `;
-
-    // 5. Scroll suave hasta el botón para que el usuario lo vea (opcional)
-    confirmSection.scrollIntoView({ behavior: 'smooth' });
-}
-
-
-// ------------------------------
 
 
 // Variables globales para los datos seleccionados
