@@ -147,14 +147,27 @@ function encolar_scripts_reservas() {
     $dias_map = ['monday' => 'lun', 'tuesday' => 'mar', 'wednesday' => 'mie', 'thursday' => 'jue', 'friday' => 'vie', 'saturday' => 'sab', 'sunday' => 'dom'];
     $config_semana = array();
 
-    foreach ($dias_map as $eng => $esp) {
-        $config_semana[$eng] = array(
-            'ap' => get_field($esp.'_ap', $id),
-            'ci' => get_field($esp.'_ci', $id),
-            'br_i' => get_field($esp.'_br_i', $id),
-            'br_f' => get_field($esp.'_br_f', $id),
-            'activo' => get_field($esp.'_status', $id)
-        );
+    $all_fields = get_fields($id);
+    if (is_array($all_fields)) {
+        foreach ($dias_map as $eng => $esp) {
+            $config_semana[$eng] = array(
+                'ap' => isset($all_fields[$esp.'_ap']) ? $all_fields[$esp.'_ap'] : null,
+                'ci' => isset($all_fields[$esp.'_ci']) ? $all_fields[$esp.'_ci'] : null,
+                'br_i' => isset($all_fields[$esp.'_br_i']) ? $all_fields[$esp.'_br_i'] : null,
+                'br_f' => isset($all_fields[$esp.'_br_f']) ? $all_fields[$esp.'_br_f'] : null,
+                'activo' => isset($all_fields[$esp.'_status']) ? $all_fields[$esp.'_status'] : null
+            );
+        }
+    } else {
+        foreach ($dias_map as $eng => $esp) {
+            $config_semana[$eng] = array(
+                'ap' => get_field($esp.'_ap', $id),
+                'ci' => get_field($esp.'_ci', $id),
+                'br_i' => get_field($esp.'_br_i', $id),
+                'br_f' => get_field($esp.'_br_f', $id),
+                'activo' => get_field($esp.'_status', $id)
+            );
+        }
     }
 
     // 2. Localizamos los datos en 'reserva-main'
