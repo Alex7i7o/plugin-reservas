@@ -19,6 +19,11 @@ if( function_exists('acf_add_options_page') ) {
 // Evitar acceso directo
 if (!defined('ABSPATH')) exit;
 
+// Composer autoload
+if (file_exists(plugin_dir_path(__FILE__) . 'vendor/autoload.php')) {
+    require_once plugin_dir_path(__FILE__) . 'vendor/autoload.php';
+}
+
 // --- Opciones de Configuración de Google ---
 function sr_registrar_ajustes() {
     register_setting('sr_config_reservas_group', 'sr_google_client_id');
@@ -223,17 +228,17 @@ add_filter('script_loader_tag', function($tag, $handle, $src) {
 // Calendar
 // Ejemplo conceptual de la función en PHP
 function insertar_en_calendario_negocio($reserva_data) {
-    $client = new Google\Client();
+    $client = new \Google\Client();
     $authConfig = array(
         'type'         => 'service_account',
         'client_email' => get_option('sr_service_account_email'),
         'private_key'  => get_option('sr_service_account_private_key'),
     );
     $client->setAuthConfig($authConfig);
-    $client->addScope(Google\Service\Calendar::CALENDAR_EVENTS);
+    $client->addScope(\Google\Service\Calendar::CALENDAR_EVENTS);
     
-    $service = new Google\Service\Calendar($client);
-    $event = new Google\Service\Calendar\Event(array(
+    $service = new \Google\Service\Calendar($client);
+    $event = new \Google\Service\Calendar\Event(array(
         'summary' => 'NUEVO TURNO: ' . $reserva_data['cliente'],
         'start' => array('dateTime' => $reserva_data['inicio']),
         'end' => array('dateTime' => $reserva_data['fin']),
@@ -275,7 +280,7 @@ function consultar_disponibilidad_callback($request) {
     }
 
     try {
-        $client = new Google\Client();
+        $client = new \Google\Client();
         $private_key = get_option('sr_service_account_private_key');
         $private_key = str_replace("\\n", "\n", $private_key);
 
@@ -285,18 +290,18 @@ function consultar_disponibilidad_callback($request) {
             'private_key'  => $private_key,
         );
         $client->setAuthConfig($authConfig);
-        $client->addScope(Google\Service\Calendar::CALENDAR_READONLY);
+        $client->addScope(\Google\Service\Calendar::CALENDAR_READONLY);
 
-        $service = new Google\Service\Calendar($client);
+        $service = new \Google\Service\Calendar($client);
         $calendarId = get_option('sr_calendar_id', 'primary');
         if (empty($calendarId)) $calendarId = 'primary';
 
-        $freebusyReq = new Google\Service\Calendar\FreeBusyRequest();
+        $freebusyReq = new \Google\Service\Calendar\FreeBusyRequest();
         $freebusyReq->setTimeMin(date('c', strtotime($fecha . ' 00:00:00')));
         $freebusyReq->setTimeMax(date('c', strtotime($fecha . ' 23:59:59')));
         $freebusyReq->setTimeZone('America/Argentina/Buenos_Aires');
 
-        $item = new Google\Service\Calendar\FreeBusyRequestItem();
+        $item = new \Google\Service\Calendar\FreeBusyRequestItem();
         $item->setId($calendarId);
         $freebusyReq->setItems(array($item));
 
