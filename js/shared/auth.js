@@ -65,21 +65,47 @@ export function mostrarSesionIniciada(perfil) {
 
     const fotoUrl = perfil.picture || perfil.avatar || 'https://via.placeholder.com/40';
 
-    loginSection.innerHTML = `
-    <div class="user-ready" style="display: flex; align-items: center; gap: 10px;">
-        <img src="${fotoUrl}" referrerpolicy="no-referrer" style="border-radius:50%; width:40px; border: 2px solid #ff6b00;">
-        <span>Listo, <strong>${perfil.name}</strong></span>
-        <button id="btn-logout" style="background:none; border:none; color:#ff6b00; cursor:pointer; text-decoration:underline; font-size:12px;">
-            (Cerrar Sesión)
-        </button>
-    </div>
-    `;
+    // Clear existing content safely
+    loginSection.textContent = '';
 
-    document.getElementById('btn-logout').onclick = (e) => {
+    const container = document.createElement('div');
+    container.className = 'user-ready';
+    container.style.display = 'flex';
+    container.style.alignItems = 'center';
+    container.style.gap = '10px';
+
+    const img = document.createElement('img');
+    img.src = fotoUrl;
+    img.referrerPolicy = 'no-referrer';
+    img.style.borderRadius = '50%';
+    img.style.width = '40px';
+    img.style.border = '2px solid #ff6b00';
+    container.appendChild(img);
+
+    const span = document.createElement('span');
+    span.textContent = 'Listo, ';
+    const strong = document.createElement('strong');
+    strong.textContent = perfil.name;
+    span.appendChild(strong);
+    container.appendChild(span);
+
+    const btnLogout = document.createElement('button');
+    btnLogout.id = 'btn-logout';
+    btnLogout.style.background = 'none';
+    btnLogout.style.border = 'none';
+    btnLogout.style.color = '#ff6b00';
+    btnLogout.style.cursor = 'pointer';
+    btnLogout.style.textDecoration = 'underline';
+    btnLogout.style.fontSize = '12px';
+    btnLogout.textContent = '(Cerrar Sesión)';
+    btnLogout.onclick = (e) => {
         e.preventDefault();
         cerrarSesion();
     };
-    
+    container.appendChild(btnLogout);
+
+    loginSection.appendChild(container);
+
     const serviceSection = document.getElementById('service-section');
     if (serviceSection) {
         serviceSection.style.display = 'block';
