@@ -1,0 +1,10 @@
+{
+    "require": {
+        "google/apiclient": "^2.15"
+    },
+    "scripts": {
+        "post-install-cmd": [
+            "Google\\Task\\Composer::cleanup"
+        ]
+    }
+}
