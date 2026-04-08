@@ -81,13 +81,20 @@ async function confirmarReservaFinal() {
         console.log("Iniciando proceso de guardado...");
 
         // 1. Guardar en WordPress usando el nuevo servicio
-        const okWP = await guardarReservaEnWP(datosReserva);
-        if (!okWP) throw new Error("Error al guardar en la base de datos de WordPress.");
+        const resultadoWP = await guardarReservaEnWP(datosReserva);
+        if (!resultadoWP) throw new Error("Error al guardar en la base de datos de WordPress.");
 
-        // 2. Agendar en Google usando el servicio de calendario
+        // 2. Redirigir a Mercado Pago si es necesario
+        if (resultadoWP.payment_url) {
+            console.log("Redirigiendo a Mercado Pago...");
+            window.location.href = resultadoWP.payment_url;
+            return; // Termina la ejecución aquí, la reserva de Google se hace vía Webhook
+        }
+
+        // 3. Agendar en Google usando el servicio de calendario (si no hubo pago)
         const resultadoGoogle = await agendarEnGoogle(datosReserva);
 
-        // 3. Respuesta final al usuario
+        // 4. Respuesta final al usuario
         if (resultadoGoogle.ok) {
             mostrarPantallaExito();
         } else if (resultadoGoogle.error !== 'unauthorized') {
