@@ -30,6 +30,12 @@ function sr_registrar_ajustes() {
     register_setting('sr_config_reservas_group', 'sr_service_account_email', 'sanitize_email');
     register_setting('sr_config_reservas_group', 'sr_service_account_private_key');
     register_setting('sr_config_reservas_group', 'sr_calendar_id');
+
+    // Mercado Pago
+    register_setting('sr_config_reservas_group', 'sr_activar_pagos');
+    register_setting('sr_config_reservas_group', 'sr_mp_public_key');
+    register_setting('sr_config_reservas_group', 'sr_mp_access_token');
+    register_setting('sr_config_reservas_group', 'sr_precio_servicio');
 }
 add_action('admin_init', 'sr_registrar_ajustes');
 
@@ -76,6 +82,34 @@ function sr_renderizar_pagina_ajustes() {
                     <td>
                         <input type="text" name="sr_calendar_id" value="<?php echo esc_attr(get_option('sr_calendar_id')); ?>" class="regular-text" />
                         <p class="description">El email del calendario principal (ej. primary o email@gmail.com)</p>
+                    </td>
+                </tr>
+            </table>
+
+            <h2>Pagos</h2>
+            <table class="form-table">
+                <tr valign="top">
+                    <th scope="row">Activar Pagos (Mercado Pago)</th>
+                    <td>
+                        <input type="checkbox" name="sr_activar_pagos" value="1" <?php checked(1, get_option('sr_activar_pagos'), true); ?> />
+                    </td>
+                </tr>
+                <tr valign="top">
+                    <th scope="row">Mercado Pago Public Key</th>
+                    <td>
+                        <input type="text" name="sr_mp_public_key" value="<?php echo esc_attr(get_option('sr_mp_public_key')); ?>" class="regular-text" />
+                    </td>
+                </tr>
+                <tr valign="top">
+                    <th scope="row">Mercado Pago Access Token</th>
+                    <td>
+                        <input type="text" name="sr_mp_access_token" value="<?php echo esc_attr(get_option('sr_mp_access_token')); ?>" class="regular-text" />
+                    </td>
+                </tr>
+                <tr valign="top">
+                    <th scope="row">Precio del Servicio</th>
+                    <td>
+                        <input type="number" step="0.01" name="sr_precio_servicio" value="<?php echo esc_attr(get_option('sr_precio_servicio')); ?>" class="regular-text" />
                     </td>
                 </tr>
             </table>
@@ -270,7 +304,62 @@ add_action('rest_api_init', function () {
         'callback' => 'consultar_disponibilidad_callback',
         'permission_callback' => '__return_true',
     ));
+
+    register_rest_route('reserva/v1', '/pago-confirmado', array(
+        'methods' => 'POST',
+        'callback' => 'confirmar_pago_callback',
+        'permission_callback' => '__return_true',
+    ));
 });
+
+function confirmar_pago_callback($request) {
+    // Mercado Pago envía notificaciones por POST
+    $mp_access_token = get_option('sr_mp_access_token');
+
+    if (empty($mp_access_token)) {
+        return new WP_Error('no_token', 'No access token configured', array('status' => 500));
+    }
+
+    \MercadoPago\SDK::setAccessToken($mp_access_token);
+
+    $topic = $request->get_param('topic');
+    $id = $request->get_param('id');
+
+    // Si es un pago...
+    if ($topic == 'payment') {
+        $payment = \MercadoPago\Payment::find_by_id($id);
+
+        if ($payment && $payment->status == 'approved') {
+            $post_id = $payment->external_reference;
+
+            if ($post_id) {
+                // Recuperar los datos guardados en ACF para crear el evento
+                $cliente = get_field('cliente', $post_id);
+                $email = get_field('email_cliente', $post_id);
+                $fecha = get_field('fecha', $post_id);
+                $hora = get_field('hora', $post_id);
+                $horaFin = get_field('horaFin', $post_id);
+                $servicio = get_field('servicio', $post_id);
+
+                $reserva_data = array(
+                    'cliente' => $cliente,
+                    'email'   => $email,
+                    'servicio'=> $servicio,
+                    // Convertir fecha/hora a formato ISO 8601 esperado por la API de Google
+                    'inicio'  => $fecha . 'T' . $hora . ':00-03:00',
+                    'fin'     => $fecha . 'T' . ($horaFin ?: $hora) . ':00-03:00'
+                );
+
+                // Disparar inserción en Google Calendar
+                insertar_en_calendario_negocio($reserva_data);
+
+                return new WP_REST_Response('Pago confirmado y agendado', 200);
+            }
+        }
+    }
+
+    return new WP_REST_Response('OK', 200);
+}
 
 function consultar_disponibilidad_callback($request) {
     $fecha = sanitize_text_field($request->get_param('fecha'));
@@ -338,8 +427,10 @@ function guardar_reserva_callback($request) {
     $parametros = $request->get_json_params();
     
     // Sanitización de entradas
+    $cliente  = isset($parametros['cliente']) ? sanitize_text_field($parametros['cliente']) : '';
     $email    = isset($parametros['email']) ? sanitize_email($parametros['email']) : '';
     $hora     = isset($parametros['hora']) ? sanitize_text_field($parametros['hora']) : '';
+    $horaFin  = isset($parametros['horaFin']) ? sanitize_text_field($parametros['horaFin']) : '';
     $fecha    = isset($parametros['fecha']) ? sanitize_text_field($parametros['fecha']) : '';
     $servicio = isset($parametros['servicio']) ? sanitize_text_field($parametros['servicio']) : '';
 
@@ -351,13 +442,56 @@ function guardar_reserva_callback($request) {
     ));
 
     if ($post_id) {
-        // Guardamos los datos en ACF. 
-        // Nota: El tercer parámetro es el post_id
+        // Guardamos los datos en ACF / Post meta.
+        update_field('cliente', $cliente, $post_id);
         update_field('email_cliente', $email, $post_id);
         update_field('fecha', $fecha, $post_id);
         update_field('hora', $hora, $post_id);
+        update_field('horaFin', $horaFin, $post_id);
         update_field('servicio', $servicio, $post_id);
         
+        // Verificamos si los pagos están activos
+        $activar_pagos = get_option('sr_activar_pagos');
+
+        if ($activar_pagos == '1') {
+            $mp_access_token = get_option('sr_mp_access_token');
+            $precio = get_option('sr_precio_servicio');
+
+            if (!empty($mp_access_token)) {
+                // Configurar SDK de Mercado Pago
+                \MercadoPago\SDK::setAccessToken($mp_access_token);
+
+                $preference = new \MercadoPago\Preference();
+
+                $item = new \MercadoPago\Item();
+                $item->title = 'Reserva: ' . $servicio;
+                $item->quantity = 1;
+                $item->unit_price = (float) $precio;
+                $preference->items = array($item);
+
+                // Vinculamos la reserva mediante external_reference
+                $preference->external_reference = $post_id;
+
+                // Urls de retorno (opcional)
+                $preference->back_urls = array(
+                    "success" => home_url('/'),
+                    "failure" => home_url('/'),
+                    "pending" => home_url('/')
+                );
+                $preference->auto_return = "approved";
+
+                $preference->save();
+
+                // Devolver URL de pago
+                return new WP_REST_Response(array(
+                    'message' => 'Reserva guardada pendiente de pago',
+                    'id' => $post_id,
+                    'payment_url' => $preference->init_point
+                ), 200);
+            }
+        }
+
+        // Si no hay pagos activos, continuamos normalmente
         return new WP_REST_Response(array('message' => 'Reserva guardada', 'id' => $post_id), 200);
     }
 
