@@ -7,5 +7,11 @@ export async function guardarReservaEnWP(datos) {
         },
         body: JSON.stringify(datos)
     });
-    return response.ok;
+
+    if (response.ok) {
+        const data = await response.json();
+        return { ok: true, init_point: data.init_point };
+    }
+
+    return { ok: false };
 }
