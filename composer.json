@@ -1,6 +1,7 @@
 {
     "require": {
-        "google/apiclient": "^2.15"
+        "google/apiclient": "^2.15",
+        "mercadopago/dx-php": "^3.0"
     },
     "scripts": {
         "post-install-cmd": [
