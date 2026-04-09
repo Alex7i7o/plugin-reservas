@@ -12,5 +12,13 @@
 
     <div id="calendar-section" style="display:none;">
         <h3>Paso 3: Elige tu horario</h3>
-        <div id="grid-horarios"></div> </div>
+        <div id="loading-horarios" class="loading-horarios" style="display:none;">
+            <div class="spinner"></div>
+            Cargando horarios disponibles...
+        </div>
+        <div id="empty-horarios" class="empty-horarios" style="display:none;">
+            No hay turnos disponibles para este día.
+        </div>
+        <div id="grid-horarios"></div>
+    </div>
 </div>

@@ -22,6 +22,13 @@
 
         <div id="horarios-container" style="display:none; margin-top: 20px;">
             <h3>Paso 4: Horarios disponibles</h3>
+            <div id="loading-horarios" class="loading-horarios" style="display:none;">
+                <div class="spinner"></div>
+                Cargando horarios disponibles...
+            </div>
+            <div id="empty-horarios" class="empty-horarios" style="display:none;">
+                No hay turnos disponibles para este día.
+            </div>
             <div id="grid-horarios"></div>
         </div>
     </div>
