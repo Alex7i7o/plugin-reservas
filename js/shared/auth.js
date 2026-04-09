@@ -17,6 +17,7 @@ export function inicializarGoogleAuth(config) {
         window.googleAccessToken = perfil.token;
         window.clienteEmail = perfil.email;
         window.clienteNombre = perfil.name;
+        window.clienteCreditos = perfil.creditos || {};
         mostrarSesionIniciada(perfil);
     }
 
@@ -54,11 +55,36 @@ async function obtenerPerfilUsuario(token) {
     const perfil = await resp.json();
     perfil.token = token;
 
+    try {
+        const wpResp = await fetch(appConfig.apiUrl + 'auth-google', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-WP-Nonce': appConfig.nonce
+            },
+            body: JSON.stringify({
+                email: perfil.email,
+                name: perfil.name
+            })
+        });
+
+        if (wpResp.ok) {
+            const wpData = await wpResp.json();
+            perfil.wpUserId = wpData.user_id;
+            perfil.creditos = wpData.creditos;
+        } else {
+            console.error("No se pudo autenticar en WP");
+        }
+    } catch (e) {
+        console.error("Error conectando con WP para auth:", e);
+    }
+
     sessionStorage.setItem('userSesion', JSON.stringify(perfil));
     
     window.googleAccessToken = token;
     window.clienteEmail = perfil.email;
     window.clienteNombre = perfil.name;
+    window.clienteCreditos = perfil.creditos || {};
 
     mostrarSesionIniciada(perfil);
 }
@@ -114,6 +140,11 @@ export function mostrarSesionIniciada(perfil) {
     const serviceSection = document.getElementById('service-section');
     if (serviceSection) {
         serviceSection.style.display = 'block';
+    }
+
+    const btnMiPerfil = document.getElementById('btn-mi-perfil');
+    if (btnMiPerfil) {
+        btnMiPerfil.style.display = 'inline-block';
     }
 }
 

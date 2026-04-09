@@ -115,6 +115,13 @@ async function confirmarReservaFinal() {
         accessToken: window.googleAccessToken // Usamos la variable global de auth.js
     };
 
+    // Check credits
+    if (window.clienteCreditos && window.clienteCreditos[window.servicioId] && window.clienteCreditos[window.servicioId] > 0) {
+        if (confirm(`Tenés ${window.clienteCreditos[window.servicioId]} créditos para este servicio. ¿Querés usar 1 crédito para reservar sin pagar ahora?`)) {
+            datosReserva.usar_credito = true;
+        }
+    }
+
     try {
         console.log("Iniciando proceso de guardado...");
 
@@ -122,8 +129,16 @@ async function confirmarReservaFinal() {
         const wpResponse = await guardarReservaEnWP(datosReserva);
         if (!wpResponse || !wpResponse.ok) throw new Error("Error al guardar en la base de datos de WordPress.");
 
-        // 2. Redirigir a Mercado Pago
-        if (wpResponse.init_point) {
+        // 2. Redirigir a Mercado Pago o mostrar éxito si se usó crédito
+        if (wpResponse.method === 'wallet') {
+            mostrarPantallaExito({
+                servicio: window.servicioSeleccionado,
+                fecha: window.fechaSeleccionada,
+                hora: window.horarioSeleccionado
+            });
+            // Update local credits
+            window.clienteCreditos[window.servicioId] -= 1;
+        } else if (wpResponse.init_point) {
             window.location.href = wpResponse.init_point;
         } else {
             alert("Reserva guardada, pero hubo un error al generar el pago.");
@@ -142,3 +157,126 @@ document.getElementById('btn-confirmar-final').onclick = confirmarReservaFinal;
 
 
 
+
+// ---- PERFIL Y MIS RESERVAS ----
+document.addEventListener('DOMContentLoaded', () => {
+    const btnMiPerfil = document.getElementById('btn-mi-perfil');
+    if (btnMiPerfil) {
+        btnMiPerfil.onclick = toggleMiPerfil;
+    }
+    const btnVolver = document.getElementById('btn-volver-reserva');
+    if (btnVolver) {
+        btnVolver.onclick = () => {
+            document.getElementById('mi-perfil-section').style.display = 'none';
+            document.getElementById('reserva-flow').style.display = 'block';
+        };
+    }
+});
+
+async function toggleMiPerfil() {
+    const miPerfilSection = document.getElementById('mi-perfil-section');
+    const reservaFlow = document.getElementById('reserva-flow');
+
+    if (miPerfilSection.style.display === 'none') {
+        miPerfilSection.style.display = 'block';
+        reservaFlow.style.display = 'none';
+
+        // Cargar datos
+        cargarDatosPerfil();
+    } else {
+        miPerfilSection.style.display = 'none';
+        reservaFlow.style.display = 'block';
+    }
+}
+
+async function cargarDatosPerfil() {
+    const lista = document.getElementById('mis-reservas-lista');
+    const info = document.getElementById('perfil-info');
+
+    lista.innerHTML = '<p>Cargando reservas...</p>';
+
+    if (window.clienteCreditos) {
+        let htmlCreditos = '<p><strong>Mis Créditos (Wallet):</strong></p><ul>';
+        for (const [servicioId, creditos] of Object.entries(window.clienteCreditos)) {
+            if (creditos > 0) {
+                htmlCreditos += `<li>Servicio ID ${servicioId}: ${creditos} créditos</li>`;
+            }
+        }
+        htmlCreditos += '</ul>';
+        info.innerHTML = htmlCreditos;
+    } else {
+        info.innerHTML = '<p>No tenés créditos disponibles.</p>';
+    }
+
+    try {
+        const resp = await fetch(`${appConfig.apiUrl}mis-reservas?email=${window.clienteEmail}`);
+        if (resp.ok) {
+            const reservas = await resp.json();
+            if (reservas.length === 0) {
+                lista.innerHTML = '<p>No tenés próximos turnos.</p>';
+            } else {
+                lista.innerHTML = '';
+                reservas.forEach(r => {
+                    const div = document.createElement('div');
+                    div.style.border = '1px solid #ccc';
+                    div.style.padding = '10px';
+                    div.style.marginBottom = '10px';
+                    div.style.borderRadius = '5px';
+
+                    const p = document.createElement('p');
+                    p.innerHTML = `<strong>${r.servicio}</strong> - ${r.fecha} a las ${r.hora}`;
+                    div.appendChild(p);
+
+                    // Verificar regla de 12 horas
+                    const now = new Date().getTime() / 1000;
+                    if ((r.timestamp - now) > 12 * 3600) {
+                        const btn = document.createElement('button');
+                        btn.textContent = 'Cancelar Turno';
+                        btn.className = 'button button-outline';
+                        btn.onclick = () => cancelarReserva(r.id);
+                        div.appendChild(btn);
+                    } else {
+                        const span = document.createElement('span');
+                        span.style.fontSize = '12px';
+                        span.style.color = 'red';
+                        span.textContent = ' (Faltan menos de 12hs, no se puede cancelar online)';
+                        div.appendChild(span);
+                    }
+
+                    lista.appendChild(div);
+                });
+            }
+        }
+    } catch (e) {
+        console.error("Error al cargar reservas", e);
+        lista.innerHTML = '<p>Error al cargar reservas.</p>';
+    }
+}
+
+async function cancelarReserva(reservaId) {
+    if (!confirm('¿Estás seguro de que querés cancelar este turno?')) return;
+    try {
+        const resp = await fetch(`${appConfig.apiUrl}cancelar-reserva`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                reserva_id: reservaId,
+                email: window.clienteEmail
+            })
+        });
+
+        if (resp.ok) {
+            alert("Turno cancelado.");
+            cargarDatosPerfil(); // recargar
+        } else {
+            const err = await resp.json();
+            alert("Error: " + err.message);
+        }
+    } catch (e) {
+        console.error(e);
+        alert("Ocurrió un error.");
+    }
+}
+// ------------------------------
