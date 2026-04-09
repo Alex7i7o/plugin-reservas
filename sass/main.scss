@@ -6,3 +6,26 @@
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
+
+/* Quitamos el cursor de texto de los títulos del paso */
+#reserva-app select {
+    cursor: pointer !important;
+}
+#reserva-app select,
+#reserva-app h1,
+#reserva-app h2,
+#reserva-app h3,
+#reserva-app div,
+#reserva-app span 
+*{
+    caret-color: transparent !important; /* Hace la barrita invisible */
+    outline: none !important;            /* Quita el borde de enfoque */
+}
+
+/* Solo lo habilitamos para los inputs donde SÍ hay que escribir */
+#reserva-app input[type="text"],
+#reserva-app input[type="email"],
+#reserva-app input[type="tel"],
+#reserva-app textarea {
+    caret-color: #4b3669 !important; /* El cursor vuelve a ser violeta acá */
+}

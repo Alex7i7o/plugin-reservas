@@ -6,6 +6,13 @@
         border-radius: 8px;
         font-size: 16px;
         margin-bottom: 10px;
+        font-family: 'Raleway', sans-serif !important;
+        border: 2px solid #4b3669;
+        appearance: none;
+        background-image: url('data:image/svg+xml;charset=US-ASCII,<svg%20xmlns%3D"http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg"%20width%3D"24"%20height%3D"24"%20viewBox%3D"0%200%2024%2024"><path%20fill%3D"%234b3669"%20d%3D"M7%2010l5%205%205-5z"%2F><%2Fsvg>'); /* Flecha violeta */
+        background-repeat: no-repeat;
+        background-position: right 10px center;
+        cursor: pointer;
     }
     #grid-horarios {
         display: grid;
@@ -36,13 +43,24 @@
         font-weight: 500;
     }
     .btn-inicio{
-        padding: 10px;
-        border: 1px solid #007cba;
-        background: white;
-        color: #007cba;
-        border-radius: 5px;
-        cursor: pointer;
-        font-weight: 500;
+        border-radius: 20px;
+	padding: 15px 40px 15px 40px;
+	font-size: 14px;
+	white-space: nowrap;
+	font-family: 'Raleway';
+	text-transform: uppercase;
+	font-weight: bold;
+	height: 35px;
+	display: inline-flex;
+    align-items: center;
+    justify-content: center;
+	background: linear-gradient(135deg, #4b3669 0%, #624b85 100%);
+	background: linear-gradient(-45deg, #4b3669 0%, #624b85 20%, #7a60a0 50%, #4b3669 100%);
+    background-size: 400% 400%;
+	animation: gradientAnimation 10s ease infinite;
+	transition: all 1s ease;
+	box-shadow: 0 2px 5px rgba(75, 54, 105, 0.3);
+	display: flex;
     }
     .btn-exito{
         padding: 10px;
@@ -61,4 +79,13 @@
         border-radius: 5px;
         cursor: pointer;
         font-weight: 500;
+    }
+
+    #reserva-app h3 {
+        color: #4b3669; /* Violeta base */
+        font-family: 'Raleway', sans-serif;
+        font-weight: 600;
+        border-left: 4px solid #c8a35b; /* Una barrita dorada a la izquierda */
+        padding-left: 15px;
+        margin-bottom: 25px;
     }
