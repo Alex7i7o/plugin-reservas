@@ -20,13 +20,33 @@
         gap: 10px;
     }
     .btn-horario {
-        padding: 10px;
-        border: 1px solid #007cba;
-        background: white;
-        color: #007cba;
-        border-radius: 5px;
-        cursor: pointer;
-        font-weight: 500;
+        border-radius: 20px;
+        padding: 15px 40px 15px 40px;
+        font-size: 14px;
+        white-space: nowrap;
+        font-family: 'Raleway';
+        text-transform: uppercase;
+        font-weight: bold;
+        height: 35px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #4b3669 0%, #624b85 100%);
+        background: linear-gradient(-45deg, #4b3669 0%, #624b85 20%, #7a60a0 50%, #4b3669 100%);
+        background-size: 400% 400%;
+        animation: gradientAnimation 10s ease infinite;
+        transition: all 1s ease;
+        box-shadow: 0 2px 5px rgba(75, 54, 105, 0.3);
+        display: flex;
+
+        &.selected {
+            background-color: #ff8c00 !important;
+            background-image: none !important;
+            color: #ffffff !important;
+            border-color: #e67e00 !important;
+            transform: translateY(-5px);
+            box-shadow: 0 4px 15px rgba(255, 140, 0, 0.4);
+        }
     }
 
     .loading-horarios {
@@ -34,7 +54,7 @@
         align-items: center;
         justify-content: center;
         padding: 20px;
-        color: #007cba;
+        color: #4b3669;
         font-weight: 500;
         font-size: 16px;
         gap: 10px;
@@ -44,7 +64,7 @@
             height: 20px;
             border: 3px solid rgba(0, 124, 186, 0.3);
             border-radius: 50%;
-            border-top-color: #007cba;
+            border-top-color: #4b3669;
             animation: spin 1s ease-in-out infinite;
         }
     }
@@ -64,39 +84,46 @@
             transform: rotate(360deg);
         }
     }
-    .btn-horario.selected {
-        background-color: #ff8c00; /* El naranja que te gusta */
-        color: white;
-        border-color: #e67e00;
-    }
+    
     .btn-reserva{
-        padding: 10px;
-        border: 1px solid #007cba;
-        background: white;
-        color: #007cba;
-        border-radius: 5px;
-        cursor: pointer;
-        font-weight: 500;
+        border-radius: 20px;
+        padding: 15px 40px 15px 40px;
+        font-size: 14px;
+        white-space: nowrap;
+        font-family: 'Raleway';
+        text-transform: uppercase;
+        font-weight: bold;
+        height: 35px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #4b3669 0%, #624b85 100%);
+        background: linear-gradient(-45deg, #4b3669 0%, #624b85 20%, #7a60a0 50%, #4b3669 100%);
+        background-size: 400% 400%;
+        animation: gradientAnimation 10s ease infinite;
+        transition: all 1s ease;
+        box-shadow: 0 2px 5px rgba(75, 54, 105, 0.3);
+        display: flex;
     }
     .btn-inicio{
         border-radius: 20px;
-	padding: 15px 40px 15px 40px;
-	font-size: 14px;
-	white-space: nowrap;
-	font-family: 'Raleway';
-	text-transform: uppercase;
-	font-weight: bold;
-	height: 35px;
-	display: inline-flex;
-    align-items: center;
-    justify-content: center;
-	background: linear-gradient(135deg, #4b3669 0%, #624b85 100%);
-	background: linear-gradient(-45deg, #4b3669 0%, #624b85 20%, #7a60a0 50%, #4b3669 100%);
-    background-size: 400% 400%;
-	animation: gradientAnimation 10s ease infinite;
-	transition: all 1s ease;
-	box-shadow: 0 2px 5px rgba(75, 54, 105, 0.3);
-	display: flex;
+        padding: 15px 40px 15px 40px;
+        font-size: 14px;
+        white-space: nowrap;
+        font-family: 'Raleway';
+        text-transform: uppercase;
+        font-weight: bold;
+        height: 35px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #4b3669 0%, #624b85 100%);
+        background: linear-gradient(-45deg, #4b3669 0%, #624b85 20%, #7a60a0 50%, #4b3669 100%);
+        background-size: 400% 400%;
+        animation: gradientAnimation 10s ease infinite;
+        transition: all 1s ease;
+        box-shadow: 0 2px 5px rgba(75, 54, 105, 0.3);
+        display: flex;
     }
     .btn-exito{
         padding: 10px;
