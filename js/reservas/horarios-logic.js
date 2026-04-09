@@ -16,12 +16,41 @@ export async function verificarDiaYGenerarHorarios(fechaSeleccionada) {
         const select = document.getElementById('select-servicios');
         const duracion = parseInt(select.selectedOptions[0].getAttribute('data-duracion')) || 60;
 
-        // Obtenemos los horarios ocupados
-        const ocupados = await consultarDisponibilidadNegocio(fechaSeleccionada);
+        const container = document.getElementById('horarios-container');
+        const grid = document.getElementById('grid-horarios');
+        const loading = document.getElementById('loading-horarios');
+        const empty = document.getElementById('empty-horarios');
 
-        // Llamamos a la nueva función
-        renderizarHorarios(duracion, config, seleccionarHorario, ocupados);
-        document.getElementById('horarios-container').style.display = 'block';
+        if (container) container.style.display = 'block';
+        if (grid) grid.style.display = 'none';
+        if (empty) empty.style.display = 'none';
+        if (loading) loading.style.display = 'flex';
+
+        try {
+            // Obtenemos los horarios ocupados
+            const ocupados = await consultarDisponibilidadNegocio(fechaSeleccionada);
+
+            // Llamamos a la nueva función
+            const hayTurnos = renderizarHorarios(duracion, config, seleccionarHorario, ocupados);
+
+            if (loading) loading.style.display = 'none';
+
+            if (hayTurnos) {
+                if (grid) grid.style.display = 'grid';
+            } else {
+                if (empty) {
+                    empty.textContent = 'No hay turnos disponibles para este día.';
+                    empty.style.display = 'block';
+                }
+            }
+        } catch (error) {
+            console.error('Error al consultar disponibilidad:', error);
+            if (loading) loading.style.display = 'none';
+            if (empty) {
+                empty.textContent = 'Hubo un error al cargar los horarios. Por favor, intente nuevamente.';
+                empty.style.display = 'block';
+            }
+        }
     } else {
         // Si config.activo es false, el negocio está cerrado
         alert("Lo sentimos, el negocio permanece cerrado el día " + diaEspañol);

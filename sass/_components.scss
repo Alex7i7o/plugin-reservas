@@ -28,6 +28,42 @@
         cursor: pointer;
         font-weight: 500;
     }
+
+    .loading-horarios {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        color: #007cba;
+        font-weight: 500;
+        font-size: 16px;
+        gap: 10px;
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(0, 124, 186, 0.3);
+            border-radius: 50%;
+            border-top-color: #007cba;
+            animation: spin 1s ease-in-out infinite;
+        }
+    }
+
+    .empty-horarios {
+        padding: 20px;
+        text-align: center;
+        color: #555;
+        font-style: italic;
+        background-color: #f9f9f9;
+        border: 1px dashed #ccc;
+        border-radius: 8px;
+    }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
     .btn-horario.selected {
         background-color: #ff8c00; /* El naranja que te gusta */
         color: white;
