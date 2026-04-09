@@ -1,4 +1,28 @@
-[Tue Apr  7 16:08:11 2026] PHP 8.3.6 Development Server (http://localhost:8080) started
-[Tue Apr  7 16:08:23 2026] [::1]:44578 Accepted
-[Tue Apr  7 16:08:23 2026] [::1]:44578 [200]: GET /wp-json/wp/v2/disponibilidad?fecha=2024-01-01
-[Tue Apr  7 16:08:23 2026] [::1]:44578 Closing
+[Thu Apr  9 06:29:08 2026] PHP 8.3.6 Development Server (http://localhost:8080) started
+[Thu Apr  9 06:30:17 2026] [::1]:38468 Accepted
+[Thu Apr  9 06:30:17 2026] [::1]:38468 [200]: GET /Template/app-interface.php
+[Thu Apr  9 06:30:17 2026] [::1]:38468 Closing
+[Thu Apr  9 06:32:09 2026] [::1]:32866 Accepted
+[Thu Apr  9 06:32:09 2026] [::1]:32866 [200]: GET /Template/app-interface.php
+[Thu Apr  9 06:32:09 2026] [::1]:32866 Closing
+[Thu Apr  9 06:32:09 2026] [::1]:32868 Accepted
+[Thu Apr  9 06:32:09 2026] [::1]:32868 [200]: GET /css/main.css
+[Thu Apr  9 06:32:09 2026] [::1]:32868 Closing
+[Thu Apr  9 06:32:38 2026] [::1]:40352 Accepted
+[Thu Apr  9 06:32:38 2026] [::1]:40352 [200]: GET /Template/app-interface.php
+[Thu Apr  9 06:32:38 2026] [::1]:40352 Closing
+[Thu Apr  9 06:32:38 2026] [::1]:40354 Accepted
+[Thu Apr  9 06:32:38 2026] [::1]:40354 [200]: GET /css/main.css
+[Thu Apr  9 06:32:38 2026] [::1]:40354 Closing
+[Thu Apr  9 06:33:17 2026] [::1]:48626 Accepted
+[Thu Apr  9 06:33:17 2026] [::1]:48626 [200]: GET /Template/app-interface.php
+[Thu Apr  9 06:33:17 2026] [::1]:48626 Closing
+[Thu Apr  9 06:33:17 2026] [::1]:48628 Accepted
+[Thu Apr  9 06:33:17 2026] [::1]:48628 [200]: GET /css/main.css
+[Thu Apr  9 06:33:17 2026] [::1]:48628 Closing
+[Thu Apr  9 06:33:47 2026] [::1]:52244 Accepted
+[Thu Apr  9 06:33:47 2026] [::1]:52244 [200]: GET /Template/app-interface.php
+[Thu Apr  9 06:33:47 2026] [::1]:52244 Closing
+[Thu Apr  9 06:33:47 2026] [::1]:52256 Accepted
+[Thu Apr  9 06:33:47 2026] [::1]:52256 [200]: GET /css/main.css
+[Thu Apr  9 06:33:47 2026] [::1]:52256 Closing

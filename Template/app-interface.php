@@ -1,5 +1,9 @@
 <div id="reserva-app">
     <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
     <div id="login-section">
         <h3>Paso 1: Identifícate para reservar</h3>
@@ -18,7 +22,7 @@
 
     <div id="calendar-section" style="display:none; margin-top: 20px;">
         <h3>Paso 3: Elige el día</h3>
-        <input type="date" id="fecha-reserva" min="<?php echo date('Y-m-d'); ?>" class="input-pro">
+        <input type="text" id="fecha-reserva" placeholder="Selecciona una fecha" class="input-pro">
 
         <div id="horarios-container" style="display:none; margin-top: 20px;">
             <h3>Paso 4: Horarios disponibles</h3>
