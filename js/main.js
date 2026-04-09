@@ -13,6 +13,15 @@ import { verificarDiaYGenerarHorarios } from './reservas/horarios-logic.js';
 // 1. Inicio automático
 inicializarGoogleAuth(appConfig);
 
+// Verificar si venimos de un pago fallido/cancelado
+const urlParams = new URLSearchParams(window.location.search);
+const paymentStatus = urlParams.get('payment');
+if (paymentStatus === 'failed') {
+    alert("El pago fue rechazado o cancelado. Por favor, intentá nuevamente.");
+    // Limpiamos la URL para no mostrar el error en recargas
+    window.history.replaceState({}, document.title, window.location.pathname);
+}
+
 // 2. Carga de servicios al arrancar
 obtenerServiciosDesdeWP()
     .then(servicios => llenarSelectServicios(servicios))
@@ -32,6 +41,7 @@ document.getElementById('select-servicios').onchange = (e) => {
     const opcion = e.target.selectedOptions[0];
     if (opcion && opcion.value !== "") {
         window.servicioSeleccionado = opcion.text;
+        window.servicioId = opcion.value;
         window.duracionSeleccionada = opcion.dataset.duracion;
         
         // Usamos tu función de UI
@@ -56,6 +66,7 @@ document.getElementById('fecha-reserva').addEventListener('change', (e) => {
 
 // Variables globales para los datos seleccionados
 window.servicioSeleccionado = "";
+window.servicioId = "";
 window.fechaSeleccionada = "";
 window.horarioSeleccionado = "";
 
@@ -70,6 +81,7 @@ async function confirmarReservaFinal() {
         cliente: window.clienteNombre,
         email: window.clienteEmail,
         servicio: window.servicioSeleccionado,
+        servicioId: window.servicioId,
         fecha: window.fechaSeleccionada,
         hora: window.horarioSeleccionado,
         horaFin: horaFinCalculada, // Agregamos el fin calculado
@@ -81,24 +93,14 @@ async function confirmarReservaFinal() {
         console.log("Iniciando proceso de guardado...");
 
         // 1. Guardar en WordPress usando el nuevo servicio
-        const resultadoWP = await guardarReservaEnWP(datosReserva);
-        if (!resultadoWP) throw new Error("Error al guardar en la base de datos de WordPress.");
+        const wpResponse = await guardarReservaEnWP(datosReserva);
+        if (!wpResponse || !wpResponse.ok) throw new Error("Error al guardar en la base de datos de WordPress.");
 
-        // 2. Redirigir a Mercado Pago si es necesario
-        if (resultadoWP.payment_url) {
-            console.log("Redirigiendo a Mercado Pago...");
-            window.location.href = resultadoWP.payment_url;
-            return; // Termina la ejecución aquí, la reserva de Google se hace vía Webhook
-        }
-
-        // 3. Agendar en Google usando el servicio de calendario (si no hubo pago)
-        const resultadoGoogle = await agendarEnGoogle(datosReserva);
-
-        // 4. Respuesta final al usuario
-        if (resultadoGoogle.ok) {
-            mostrarPantallaExito();
-        } else if (resultadoGoogle.error !== 'unauthorized') {
-            alert("Reserva guardada, pero hubo un error al agendar en tu Google Calendar.");
+        // 2. Redirigir a Mercado Pago
+        if (wpResponse.init_point) {
+            window.location.href = wpResponse.init_point;
+        } else {
+            alert("Reserva guardada, pero hubo un error al generar el pago.");
         }
 
     } catch (error) {

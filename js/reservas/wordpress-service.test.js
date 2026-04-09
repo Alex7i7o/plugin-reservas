@@ -16,7 +16,7 @@ describe('wordpress-service', () => {
 
     describe('guardarReservaEnWP', () => {
         it('should call fetch with the correct URL', async () => {
-            global.fetch.mockResolvedValueOnce({ ok: true });
+            global.fetch.mockResolvedValueOnce({ ok: true, json: jest.fn().mockResolvedValue({ init_point: 'url' }) });
             const mockDatos = { id: 1 };
 
             await guardarReservaEnWP(mockDatos);
@@ -28,7 +28,7 @@ describe('wordpress-service', () => {
         });
 
         it('should call fetch with the correct method, headers, and body', async () => {
-            global.fetch.mockResolvedValueOnce({ ok: true });
+            global.fetch.mockResolvedValueOnce({ ok: true, json: jest.fn().mockResolvedValue({ init_point: 'url' }) });
             const mockDatos = { test: 'data' };
 
             await guardarReservaEnWP(mockDatos);
@@ -47,15 +47,15 @@ describe('wordpress-service', () => {
         });
 
         it('should return true when response.ok is true', async () => {
-            global.fetch.mockResolvedValueOnce({ ok: true });
+            global.fetch.mockResolvedValueOnce({ ok: true, json: jest.fn().mockResolvedValue({ init_point: 'url' }) });
             const result = await guardarReservaEnWP({});
-            expect(result).toBe(true);
+            expect(result).toEqual({ ok: true, init_point: 'url' });
         });
 
         it('should return false when response.ok is false', async () => {
             global.fetch.mockResolvedValueOnce({ ok: false });
             const result = await guardarReservaEnWP({});
-            expect(result).toBe(false);
+            expect(result).toEqual({ ok: false });
         });
     });
 });

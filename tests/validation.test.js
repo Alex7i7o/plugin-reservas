@@ -42,5 +42,8 @@ function test_logic() {
     }
 }
 
-test_logic();
-console.log('All security logic tests passed!');
+describe('Validation', () => {
+    it('should pass the test logic', () => {
+        expect(() => test_logic()).not.toThrow();
+    });
+});
