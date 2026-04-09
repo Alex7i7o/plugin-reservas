@@ -5,13 +5,28 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
-    <div id="login-section">
-        <h3>Paso 1: Identifícate para reservar</h3>
-        <p>Necesitamos tu permiso para agendar el turno en tu Google Calendar.</p>
-        <button id="btn-google-login" class="button button-primary btn-inicio">
-            Iniciar Sesión con Google
-        </button>
+    <div id="top-bar" style="display: flex; justify-content: flex-end; margin-bottom: 20px;">
+        <button id="btn-mi-perfil" class="button button-outline" style="display:none;">Mi Perfil / Mis Reservas</button>
     </div>
+
+    <div id="mi-perfil-section" style="display:none;">
+        <h3>Mi Perfil</h3>
+        <div id="perfil-info"></div>
+        <h4>Mis Próximos Turnos</h4>
+        <div id="mis-reservas-lista">
+            <p>Cargando reservas...</p>
+        </div>
+        <button id="btn-volver-reserva" class="button button-primary btn-inicio" style="margin-top:20px;">Volver a Reservar</button>
+    </div>
+
+    <div id="reserva-flow">
+        <div id="login-section">
+            <h3>Paso 1: Identifícate para reservar</h3>
+            <p>Necesitamos tu permiso para agendar el turno en tu Google Calendar.</p>
+            <button id="btn-google-login" class="button button-primary btn-inicio">
+                Iniciar Sesión con Google
+            </button>
+        </div>
 
     <div id="service-section" style="display:none; margin-top: 20px;">
         <h3>Paso 2: Elige un servicio</h3>
@@ -45,7 +60,8 @@
         </button>
     </div>
 
-    <div id="exito-section" style="display:none; text-align:center; padding: 40px;"></div>
+        <div id="exito-section" style="display:none; text-align:center; padding: 40px;"></div>
+    </div> <!-- end reserva-flow -->
 </div>
 
 

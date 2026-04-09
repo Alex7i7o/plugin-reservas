@@ -42,8 +42,182 @@ function sr_agregar_menu_ajustes() {
         'sr-configuracion-reservas',
         'sr_renderizar_pagina_ajustes'
     );
+
+    add_submenu_page(
+        'edit.php?post_type=reserva',
+        'Panel del Día',
+        'Panel del Día',
+        'manage_options',
+        'sr-panel-dia',
+        'sr_renderizar_panel_dia'
+    );
 }
 add_action('admin_menu', 'sr_agregar_menu_ajustes');
+
+function sr_renderizar_panel_dia() {
+    // Process manual form if submitted
+    if (isset($_POST['sr_turno_manual_nonce']) && wp_verify_nonce($_POST['sr_turno_manual_nonce'], 'sr_turno_manual_action')) {
+        $cliente = sanitize_text_field($_POST['cliente']);
+        $email = sanitize_email($_POST['email']);
+        $fecha = sanitize_text_field($_POST['fecha']);
+        $hora = sanitize_text_field($_POST['hora']);
+        $hora_fin = sanitize_text_field($_POST['hora_fin']);
+        $servicio = sanitize_text_field($_POST['servicio']);
+
+        $post_id = wp_insert_post(array(
+            'post_title'   => 'Reserva: ' . $email . ' - ' . $hora,
+            'post_type'    => 'reserva',
+            'post_status'  => 'publish', // Turno manual ya está aprobado/pagado
+        ));
+
+        if ($post_id) {
+            update_field('cliente', $cliente, $post_id);
+            update_field('email_cliente', $email, $post_id);
+            update_field('fecha', $fecha, $post_id);
+            update_field('hora', $hora, $post_id);
+            update_field('hora_fin', $hora_fin, $post_id);
+            update_field('servicio', $servicio, $post_id);
+
+            // Si el user no existe, se puede crear, o no. Lo dejamos con info basica
+
+            $reserva_data = array(
+                'cliente' => $cliente,
+                'inicio' => $fecha . 'T' . $hora . ':00-03:00',
+                'fin' => $fecha . 'T' . ($hora_fin ?: $hora) . ':00-03:00',
+                'servicio' => $servicio
+            );
+            try {
+                insertar_en_calendario_negocio($reserva_data);
+                echo '<div class="notice notice-success is-dismissible"><p>Turno manual cargado correctamente y agendado en Google Calendar.</p></div>';
+            } catch (Exception $e) {
+                echo '<div class="notice notice-warning is-dismissible"><p>Turno guardado en WP, pero falló al agendar en Google: ' . esc_html($e->getMessage()) . '</p></div>';
+            }
+        } else {
+            echo '<div class="notice notice-error is-dismissible"><p>Error al crear el turno en WordPress.</p></div>';
+        }
+    }
+
+    $hoy = date('Y-m-d');
+
+    // Obtener los servicios para el select
+    $servicios = get_posts(array(
+        'post_type' => 'servicio',
+        'posts_per_page' => -1,
+        'post_status' => 'publish'
+    ));
+
+    // Obtener reservas de hoy
+    $args = array(
+        'post_type' => 'reserva',
+        'post_status' => 'publish',
+        'posts_per_page' => -1,
+        'meta_query' => array(
+            array(
+                'key' => 'fecha',
+                'value' => $hoy,
+                'compare' => '='
+            )
+        )
+    );
+    $query_hoy = new WP_Query($args);
+    $reservas_hoy = array();
+    if ($query_hoy->have_posts()) {
+        while ($query_hoy->have_posts()) {
+            $query_hoy->the_post();
+            $reservas_hoy[] = array(
+                'cliente' => get_field('cliente'),
+                'hora' => get_field('hora'),
+                'servicio' => get_field('servicio')
+            );
+        }
+    }
+    wp_reset_postdata();
+
+    usort($reservas_hoy, function($a, $b) {
+        return strcmp($a['hora'], $b['hora']);
+    });
+
+    ?>
+    <div class="wrap">
+        <h1 class="wp-heading-inline">Panel del Día - <?php echo $hoy; ?></h1>
+
+        <div style="display:flex; gap: 20px; margin-top:20px;">
+            <div style="flex:1; background:#fff; padding:20px; border:1px solid #ccd0d4; box-shadow: 0 1px 1px rgba(0,0,0,.04);">
+                <h2>Turnos para Hoy</h2>
+                <table class="wp-list-table widefat fixed striped table-view-list">
+                    <thead>
+                        <tr>
+                            <th>Hora</th>
+                            <th>Cliente</th>
+                            <th>Servicio</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (empty($reservas_hoy)): ?>
+                            <tr><td colspan="3">No hay turnos agendados para hoy.</td></tr>
+                        <?php else: ?>
+                            <?php foreach ($reservas_hoy as $r): ?>
+                            <tr>
+                                <td><strong><?php echo esc_html($r['hora']); ?></strong></td>
+                                <td><?php echo esc_html($r['cliente']); ?></td>
+                                <td><?php echo esc_html($r['servicio']); ?></td>
+                            </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+
+            <div style="flex:1; background:#fff; padding:20px; border:1px solid #ccd0d4; box-shadow: 0 1px 1px rgba(0,0,0,.04);">
+                <h2>Cargar Turno Manual</h2>
+                <form method="post" action="">
+                    <?php wp_nonce_field('sr_turno_manual_action', 'sr_turno_manual_nonce'); ?>
+
+                    <table class="form-table" role="presentation">
+                        <tbody>
+                            <tr>
+                                <th scope="row"><label for="cliente">Nombre del Cliente</label></th>
+                                <td><input name="cliente" type="text" id="cliente" class="regular-text" required></td>
+                            </tr>
+                            <tr>
+                                <th scope="row"><label for="email">Email</label></th>
+                                <td><input name="email" type="email" id="email" class="regular-text" required placeholder="cliente@email.com"></td>
+                            </tr>
+                            <tr>
+                                <th scope="row"><label for="servicio">Servicio</label></th>
+                                <td>
+                                    <select name="servicio" id="servicio" class="regular-text" required>
+                                        <option value="">Seleccionar...</option>
+                                        <?php foreach($servicios as $s): ?>
+                                            <option value="<?php echo esc_attr($s->post_title); ?>"><?php echo esc_html($s->post_title); ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th scope="row"><label for="fecha">Fecha</label></th>
+                                <td><input name="fecha" type="date" id="fecha" class="regular-text" required value="<?php echo $hoy; ?>"></td>
+                            </tr>
+                            <tr>
+                                <th scope="row"><label for="hora">Hora Inicio</label></th>
+                                <td><input name="hora" type="time" id="hora" class="regular-text" required></td>
+                            </tr>
+                            <tr>
+                                <th scope="row"><label for="hora_fin">Hora Fin</label></th>
+                                <td><input name="hora_fin" type="time" id="hora_fin" class="regular-text" required></td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <p class="submit">
+                        <input type="submit" name="submit" id="submit" class="button button-primary" value="Crear Turno (y Agendar en Google)">
+                    </p>
+                </form>
+            </div>
+        </div>
+    </div>
+    <?php
+}
 
 function sr_renderizar_pagina_ajustes() {
     ?>
@@ -264,6 +438,12 @@ function insertar_en_calendario_negocio($reserva_data) {
 
 // 1. Registramos la ruta correctamente
 add_action('rest_api_init', function () {
+    register_rest_route('wp/v2', '/auth-google', array(
+        'methods' => 'POST',
+        'callback' => 'auth_google_callback',
+        'permission_callback' => '__return_true', // En un entorno real podrías validar el token de Google
+    ));
+
     register_rest_route('wp/v2', '/reserva', array( // Cambiamos a wp/v2 para coincidir con tu JS
         'methods' => 'POST',
         'callback' => 'guardar_reserva_callback',
@@ -284,7 +464,111 @@ add_action('rest_api_init', function () {
         'callback' => 'webhook_pago_confirmado_callback',
         'permission_callback' => '__return_true',
     ));
+
+    register_rest_route('wp/v2', '/mis-reservas', array(
+        'methods' => 'GET',
+        'callback' => 'mis_reservas_callback',
+        'permission_callback' => '__return_true',
+    ));
+
+    register_rest_route('wp/v2', '/cancelar-reserva', array(
+        'methods' => 'POST',
+        'callback' => 'cancelar_reserva_callback',
+        'permission_callback' => '__return_true',
+    ));
 });
+
+function mis_reservas_callback($request) {
+    $email = sanitize_email($request->get_param('email'));
+    if (empty($email)) {
+        return new WP_Error('falta_email', 'Se requiere email', array('status' => 400));
+    }
+
+    $args = array(
+        'post_type' => 'reserva',
+        'post_status' => 'publish', // Solo las pagadas/confirmadas
+        'posts_per_page' => -1,
+        'meta_query' => array(
+            array(
+                'key' => 'email_cliente',
+                'value' => $email,
+                'compare' => '='
+            )
+        )
+    );
+
+    $query = new WP_Query($args);
+    $reservas = array();
+
+    if ($query->have_posts()) {
+        while ($query->have_posts()) {
+            $query->the_post();
+            $fecha = get_field('fecha');
+            $hora = get_field('hora');
+
+            // Convert to timestamp
+            $datetime_str = $fecha . ' ' . $hora;
+            $timestamp = strtotime($datetime_str);
+            $now = current_time('timestamp');
+
+            if ($timestamp >= $now) {
+                $reservas[] = array(
+                    'id' => get_the_ID(),
+                    'servicio' => get_field('servicio'),
+                    'fecha' => $fecha,
+                    'hora' => $hora,
+                    'timestamp' => $timestamp
+                );
+            }
+        }
+    }
+    wp_reset_postdata();
+
+    // Sort by timestamp asc
+    usort($reservas, function($a, $b) {
+        return $a['timestamp'] - $b['timestamp'];
+    });
+
+    return new WP_REST_Response($reservas, 200);
+}
+
+function cancelar_reserva_callback($request) {
+    $parametros = $request->get_json_params();
+    $reserva_id = isset($parametros['reserva_id']) ? intval($parametros['reserva_id']) : 0;
+    $email = isset($parametros['email']) ? sanitize_email($parametros['email']) : '';
+
+    if (!$reserva_id || empty($email)) {
+        return new WP_Error('parametros_invalidos', 'Parámetros inválidos', array('status' => 400));
+    }
+
+    $email_guardado = get_field('email_cliente', $reserva_id);
+    if ($email_guardado !== $email) {
+        return new WP_Error('no_autorizado', 'No autorizado', array('status' => 403));
+    }
+
+    $fecha = get_field('fecha', $reserva_id);
+    $hora = get_field('hora', $reserva_id);
+
+    $timestamp = strtotime($fecha . ' ' . $hora);
+    $now = current_time('timestamp');
+
+    // Check if more than 12 hours away
+    if (($timestamp - $now) < 12 * 3600) {
+        return new WP_Error('muy_tarde', 'Solo se puede cancelar con más de 12hs de anticipación', array('status' => 400));
+    }
+
+    // Cancel in WP
+    wp_update_post(array(
+        'ID' => $reserva_id,
+        'post_status' => 'trash' // Or you can add a 'cancelled' status
+    ));
+
+    // Nota: Ideally we would also remove from Google Calendar here.
+    // For simplicity, we just trash the post, which frees up the slot in WP availability checks.
+    // Full Google Calendar sync would require storing the Google Event ID in post meta.
+
+    return new WP_REST_Response(array('message' => 'Reserva cancelada'), 200);
+}
 
 function webhook_pago_confirmado_callback($request) {
     $mp_access_token = get_option('sr_mp_access_token');
@@ -423,11 +707,29 @@ function guardar_reserva_callback($request) {
     $servicioId = isset($parametros['servicioId']) ? intval($parametros['servicioId']) : 0;
     $cliente    = isset($parametros['cliente']) ? sanitize_text_field($parametros['cliente']) : '';
 
+    $usar_credito = isset($parametros['usar_credito']) ? $parametros['usar_credito'] : false;
+    $user = get_user_by('email', $email);
+
+    if ($usar_credito && $user) {
+        $creditos = get_user_meta($user->ID, 'creditos_servicios', true);
+        if (!is_array($creditos)) $creditos = array();
+
+        if (isset($creditos[$servicioId]) && $creditos[$servicioId] > 0) {
+            $creditos[$servicioId] -= 1;
+            update_user_meta($user->ID, 'creditos_servicios', $creditos);
+            $post_status = 'publish'; // Aprobado automáticamente
+        } else {
+            return new WP_Error('sin_creditos', 'No tienes créditos suficientes para este servicio', array('status' => 400));
+        }
+    } else {
+        $post_status = 'pending';
+    }
+
     // IMPORTANTE: Asegurate de tener el CPT 'reserva' creado
     $post_id = wp_insert_post(array(
         'post_title'   => 'Reserva: ' . $email . ' - ' . $hora,
         'post_type'    => 'reserva', // Verifica que este slug sea el correcto en tu CPT
-        'post_status'  => 'pending',
+        'post_status'  => $post_status,
     ));
 
     if ($post_id) {
@@ -439,6 +741,18 @@ function guardar_reserva_callback($request) {
         update_field('hora_fin', $hora_fin, $post_id);
         update_field('servicio', $servicio, $post_id);
         update_field('cliente', $cliente, $post_id);
+
+        if ($post_status === 'publish') {
+            // Reserva pagada con crédito, insertar en calendar
+            $reserva_data = array(
+                'cliente' => $cliente,
+                'inicio' => $fecha . 'T' . $hora . ':00-03:00',
+                'fin' => $fecha . 'T' . ($hora_fin ?: $hora) . ':00-03:00',
+                'servicio' => $servicio
+            );
+            insertar_en_calendario_negocio($reserva_data);
+            return new WP_REST_Response(array('message' => 'Reserva guardada con créditos', 'id' => $post_id, 'method' => 'wallet'), 200);
+        }
 
         // Obtener el precio del servicio para Mercado Pago
         $precio_servicio = get_post_meta($servicioId, 'precio', true);
@@ -484,3 +798,45 @@ function guardar_reserva_callback($request) {
     return new WP_Error('error_guardado', 'No se pudo insertar el post', array('status' => 500));
 }
 
+
+
+// Función para autenticar/crear usuario
+function auth_google_callback($request) {
+    $parametros = $request->get_json_params();
+    $email = isset($parametros['email']) ? sanitize_email($parametros['email']) : '';
+    $nombre = isset($parametros['name']) ? sanitize_text_field($parametros['name']) : '';
+
+    if (empty($email)) {
+        return new WP_Error('falta_email', 'Se requiere el parámetro email', array('status' => 400));
+    }
+
+    $user = get_user_by('email', $email);
+    if (!$user) {
+        $user_id = wp_insert_user(array(
+            'user_login' => $email,
+            'user_email' => $email,
+            'first_name' => $nombre,
+            'user_pass'  => wp_generate_password(),
+            'role'       => 'subscriber'
+        ));
+        if (is_wp_error($user_id)) {
+            return $user_id;
+        }
+        $user = get_user_by('id', $user_id);
+    } else {
+        $user_id = $user->ID;
+    }
+
+    // Obtener créditos (wallet)
+    $creditos = get_user_meta($user_id, 'creditos_servicios', true);
+    if (!is_array($creditos)) {
+        $creditos = array();
+    }
+
+    return new WP_REST_Response(array(
+        'user_id' => $user_id,
+        'email' => $user->user_email,
+        'nombre' => $user->first_name,
+        'creditos' => $creditos
+    ), 200);
+}
