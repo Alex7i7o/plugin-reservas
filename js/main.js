@@ -37,28 +37,53 @@ if (btnLogin) {
     console.log("El botón de login no está en esta pantalla, saltando asignación.");
 }
 
-document.getElementById('select-servicios').onchange = (e) => {
-    const opcion = e.target.selectedOptions[0];
-    if (opcion && opcion.value !== "") {
-        window.servicioSeleccionado = opcion.text;
-        window.servicioId = opcion.value;
-        window.duracionSeleccionada = opcion.dataset.duracion;
+const selectServicios = document.getElementById('select-servicios');
+if (selectServicios) {
+    selectServicios.addEventListener('change', (e) => {
+        // Handle Tom Select which doesn't directly trigger selectedOptions on the event target reliably in some versions,
+        // or just use the native select element directly.
+        const selectElement = e.target;
+        const opcion = selectElement.options[selectElement.selectedIndex];
         
-        // Usamos tu función de UI
-        mostrarPaso('calendar-section');
-        
-        // Si ya hay fecha, refrescamos horarios
-        const fechaInput = document.getElementById('fecha-reserva');
-        if (fechaInput && fechaInput.value) {
-            verificarDiaYGenerarHorarios(fechaInput.value).catch(err => console.error("Error al generar horarios:", err));
-        }
-    }
-};
+        if (opcion && opcion.value !== "") {
+            window.servicioSeleccionado = opcion.text;
+            window.servicioId = opcion.value;
+            window.duracionSeleccionada = opcion.dataset.duracion;
 
-// 2. Escuchar cuando el usuario elige una fecha
-document.getElementById('fecha-reserva').addEventListener('change', (e) => {
-    verificarDiaYGenerarHorarios(e.target.value).catch(err => console.error("Error al generar horarios:", err));
-});
+            // Usamos tu función de UI
+            mostrarPaso('calendar-section');
+
+            // Si ya hay fecha, refrescamos horarios
+            const fechaInput = document.getElementById('fecha-reserva');
+            if (fechaInput && fechaInput.value) {
+                verificarDiaYGenerarHorarios(fechaInput.value).catch(err => console.error("Error al generar horarios:", err));
+            }
+        }
+    });
+}
+
+// Initialize Flatpickr for the date input
+if (typeof flatpickr !== 'undefined') {
+    flatpickr("#fecha-reserva", {
+        minDate: "today",
+        disable: [
+            function(date) {
+                // Return true to disable Sundays (0 = Sunday)
+                return (date.getDay() === 0);
+            }
+        ],
+        onChange: function(selectedDates, dateStr, instance) {
+            if (dateStr) {
+                verificarDiaYGenerarHorarios(dateStr).catch(err => console.error("Error al generar horarios:", err));
+            }
+        }
+    });
+} else {
+    // Fallback if flatpickr doesn't load
+    document.getElementById('fecha-reserva').addEventListener('change', (e) => {
+        verificarDiaYGenerarHorarios(e.target.value).catch(err => console.error("Error al generar horarios:", err));
+    });
+}
 
 
 
@@ -72,7 +97,8 @@ window.horarioSeleccionado = "";
 
 async function confirmarReservaFinal() {
     const select = document.getElementById('select-servicios');
-    const duracionExtraida = select.selectedOptions[0].getAttribute('data-duracion') || "60"; 
+    const opcion = select.options[select.selectedIndex];
+    const duracionExtraida = (opcion ? opcion.getAttribute('data-duracion') : "60") || "60";
 
     // Calculamos el fin usando el nuevo utilitario
     const horaFinCalculada = calcularFin(window.horarioSeleccionado, duracionExtraida);

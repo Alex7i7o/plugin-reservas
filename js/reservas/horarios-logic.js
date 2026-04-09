@@ -14,7 +14,8 @@ export async function verificarDiaYGenerarHorarios(fechaSeleccionada) {
     // 3. Verificamos si existe la configuración y si el 'status' es true (activo)
     if (config && config.activo) {
         const select = document.getElementById('select-servicios');
-        const duracion = parseInt(select.selectedOptions[0].getAttribute('data-duracion')) || 60;
+        const opcion = select.options[select.selectedIndex];
+        const duracion = parseInt(opcion ? opcion.getAttribute('data-duracion') : 60) || 60;
 
         const container = document.getElementById('horarios-container');
         const grid = document.getElementById('grid-horarios');

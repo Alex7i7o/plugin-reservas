@@ -140,4 +140,19 @@ export function llenarSelectServicios(servicios) {
         option.textContent = `${srv.title.rendered} - $${precio}`;
         select.appendChild(option);
     });
+
+    // Initialize Tom Select
+    if (window.tomSelectInstance) {
+        window.tomSelectInstance.destroy();
+    }
+
+    if (typeof TomSelect !== 'undefined') {
+        window.tomSelectInstance = new TomSelect("#select-servicios", {
+            create: false,
+            sortField: {
+                field: "text",
+                direction: "asc"
+            }
+        });
+    }
 }
