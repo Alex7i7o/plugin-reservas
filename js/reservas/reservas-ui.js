@@ -78,7 +78,10 @@ export function renderizarHorarios(duracion, config, callbackSeleccion, ocupados
         actual += duracion;
     }
 
+    const hasItems = fragment.childElementCount > 0;
     contenedor.appendChild(fragment);
+
+    return hasItems;
 }
 
 /**
