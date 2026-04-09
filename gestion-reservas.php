@@ -43,181 +43,9 @@ function sr_agregar_menu_ajustes() {
         'sr_renderizar_pagina_ajustes'
     );
 
-    add_submenu_page(
-        'edit.php?post_type=reserva',
-        'Panel del Día',
-        'Panel del Día',
-        'manage_options',
-        'sr-panel-dia',
-        'sr_renderizar_panel_dia'
-    );
 }
 add_action('admin_menu', 'sr_agregar_menu_ajustes');
 
-function sr_renderizar_panel_dia() {
-    // Process manual form if submitted
-    if (isset($_POST['sr_turno_manual_nonce']) && wp_verify_nonce($_POST['sr_turno_manual_nonce'], 'sr_turno_manual_action')) {
-        $cliente = sanitize_text_field($_POST['cliente']);
-        $email = sanitize_email($_POST['email']);
-        $fecha = sanitize_text_field($_POST['fecha']);
-        $hora = sanitize_text_field($_POST['hora']);
-        $hora_fin = sanitize_text_field($_POST['hora_fin']);
-        $servicio = sanitize_text_field($_POST['servicio']);
-
-        $post_id = wp_insert_post(array(
-            'post_title'   => 'Reserva: ' . $email . ' - ' . $hora,
-            'post_type'    => 'reserva',
-            'post_status'  => 'publish', // Turno manual ya está aprobado/pagado
-        ));
-
-        if ($post_id) {
-            update_field('cliente', $cliente, $post_id);
-            update_field('email_cliente', $email, $post_id);
-            update_field('fecha', $fecha, $post_id);
-            update_field('hora', $hora, $post_id);
-            update_field('hora_fin', $hora_fin, $post_id);
-            update_field('servicio', $servicio, $post_id);
-
-            // Si el user no existe, se puede crear, o no. Lo dejamos con info basica
-
-            $reserva_data = array(
-                'cliente' => $cliente,
-                'inicio' => $fecha . 'T' . $hora . ':00-03:00',
-                'fin' => $fecha . 'T' . ($hora_fin ?: $hora) . ':00-03:00',
-                'servicio' => $servicio
-            );
-            try {
-                insertar_en_calendario_negocio($reserva_data);
-                echo '<div class="notice notice-success is-dismissible"><p>Turno manual cargado correctamente y agendado en Google Calendar.</p></div>';
-            } catch (Exception $e) {
-                echo '<div class="notice notice-warning is-dismissible"><p>Turno guardado en WP, pero falló al agendar en Google: ' . esc_html($e->getMessage()) . '</p></div>';
-            }
-        } else {
-            echo '<div class="notice notice-error is-dismissible"><p>Error al crear el turno en WordPress.</p></div>';
-        }
-    }
-
-    $hoy = date('Y-m-d');
-
-    // Obtener los servicios para el select
-    $servicios = get_posts(array(
-        'post_type' => 'servicio',
-        'posts_per_page' => -1,
-        'post_status' => 'publish'
-    ));
-
-    // Obtener reservas de hoy
-    $args = array(
-        'post_type' => 'reserva',
-        'post_status' => 'publish',
-        'posts_per_page' => -1,
-        'meta_query' => array(
-            array(
-                'key' => 'fecha',
-                'value' => $hoy,
-                'compare' => '='
-            )
-        )
-    );
-    $query_hoy = new WP_Query($args);
-    $reservas_hoy = array();
-    if ($query_hoy->have_posts()) {
-        while ($query_hoy->have_posts()) {
-            $query_hoy->the_post();
-            $reservas_hoy[] = array(
-                'cliente' => get_field('cliente'),
-                'hora' => get_field('hora'),
-                'servicio' => get_field('servicio')
-            );
-        }
-    }
-    wp_reset_postdata();
-
-    usort($reservas_hoy, function($a, $b) {
-        return strcmp($a['hora'], $b['hora']);
-    });
-
-    ?>
-    <div class="wrap">
-        <h1 class="wp-heading-inline">Panel del Día - <?php echo $hoy; ?></h1>
-
-        <div style="display:flex; gap: 20px; margin-top:20px;">
-            <div style="flex:1; background:#fff; padding:20px; border:1px solid #ccd0d4; box-shadow: 0 1px 1px rgba(0,0,0,.04);">
-                <h2>Turnos para Hoy</h2>
-                <table class="wp-list-table widefat fixed striped table-view-list">
-                    <thead>
-                        <tr>
-                            <th>Hora</th>
-                            <th>Cliente</th>
-                            <th>Servicio</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php if (empty($reservas_hoy)): ?>
-                            <tr><td colspan="3">No hay turnos agendados para hoy.</td></tr>
-                        <?php else: ?>
-                            <?php foreach ($reservas_hoy as $r): ?>
-                            <tr>
-                                <td><strong><?php echo esc_html($r['hora']); ?></strong></td>
-                                <td><?php echo esc_html($r['cliente']); ?></td>
-                                <td><?php echo esc_html($r['servicio']); ?></td>
-                            </tr>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
-            </div>
-
-            <div style="flex:1; background:#fff; padding:20px; border:1px solid #ccd0d4; box-shadow: 0 1px 1px rgba(0,0,0,.04);">
-                <h2>Cargar Turno Manual</h2>
-                <form method="post" action="">
-                    <?php wp_nonce_field('sr_turno_manual_action', 'sr_turno_manual_nonce'); ?>
-
-                    <table class="form-table" role="presentation">
-                        <tbody>
-                            <tr>
-                                <th scope="row"><label for="cliente">Nombre del Cliente</label></th>
-                                <td><input name="cliente" type="text" id="cliente" class="regular-text" required></td>
-                            </tr>
-                            <tr>
-                                <th scope="row"><label for="email">Email</label></th>
-                                <td><input name="email" type="email" id="email" class="regular-text" required placeholder="cliente@email.com"></td>
-                            </tr>
-                            <tr>
-                                <th scope="row"><label for="servicio">Servicio</label></th>
-                                <td>
-                                    <select name="servicio" id="servicio" class="regular-text" required>
-                                        <option value="">Seleccionar...</option>
-                                        <?php foreach($servicios as $s): ?>
-                                            <option value="<?php echo esc_attr($s->post_title); ?>"><?php echo esc_html($s->post_title); ?></option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </td>
-                            </tr>
-                            <tr>
-                                <th scope="row"><label for="fecha">Fecha</label></th>
-                                <td><input name="fecha" type="date" id="fecha" class="regular-text" required value="<?php echo $hoy; ?>"></td>
-                            </tr>
-                            <tr>
-                                <th scope="row"><label for="hora">Hora Inicio</label></th>
-                                <td><input name="hora" type="time" id="hora" class="regular-text" required></td>
-                            </tr>
-                            <tr>
-                                <th scope="row"><label for="hora_fin">Hora Fin</label></th>
-                                <td><input name="hora_fin" type="time" id="hora_fin" class="regular-text" required></td>
-                            </tr>
-                        </tbody>
-                    </table>
-
-                    <p class="submit">
-                        <input type="submit" name="submit" id="submit" class="button button-primary" value="Crear Turno (y Agendar en Google)">
-                    </p>
-                </form>
-            </div>
-        </div>
-    </div>
-    <?php
-}
 
 function sr_renderizar_pagina_ajustes() {
     ?>
@@ -321,19 +149,6 @@ add_filter('wp_insert_post_data', function($data, $postarr) {
 
 // Creamos el "Shortcode" para mostrar la app
 // 1. Corregimos el Shortcode y la ruta del archivo
-function mostrar_mi_app_reservas() {
-    // Definimos la ruta exacta al archivo
-    $archivo_path = plugin_dir_path(__FILE__) . 'template/app-interface.php';
-
-    if (file_exists($archivo_path)) {
-        ob_start();
-        include $archivo_path;
-        return ob_get_clean();
-    } else {
-        return "Error: No se encuentra el archivo en: " . $archivo_path;
-    }
-}
-add_shortcode('mi_app_reservas', 'mostrar_mi_app_reservas');
 
 
 
@@ -342,6 +157,14 @@ add_shortcode('mi_app_reservas', 'mostrar_mi_app_reservas');
 function encolar_scripts_reservas() {
     // Encolamos el CSS compilado (que estará en la carpeta css/)
     wp_enqueue_style('reserva-estilos', plugins_url('/css/main.css', __FILE__), array(), '1.5');
+
+    wp_enqueue_script(
+        'app-cliente-main',
+        plugins_url('/js/app-cliente/main.js', __FILE__),
+        array('reserva-main'),
+        '1.0',
+        true
+    );
 
     wp_enqueue_script(
     'reserva-main', 
@@ -840,3 +663,8 @@ function auth_google_callback($request) {
         'creditos' => $creditos
     ), 200);
 }
+
+// Carga de Módulos (Shortcodes y Lógica)
+require_once plugin_dir_path(__FILE__) . 'app-cliente/app-cliente.php';
+require_once plugin_dir_path(__FILE__) . 'app-negocio/app-negocio.php';
+require_once plugin_dir_path(__FILE__) . 'app-reservas/app-reservas.php';

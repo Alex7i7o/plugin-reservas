@@ -158,3 +158,64 @@
 .flatpickr-calendar {
     font-family: 'Raleway', sans-serif !important;
 }
+
+/* App Negocio Styles */
+.app-container {
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.panel-layout {
+    display: flex;
+    gap: 20px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+}
+
+.panel-card {
+    flex: 1;
+    min-width: 300px;
+    background: #fff;
+    padding: 20px;
+    border: 1px solid #ccd0d4;
+    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+    border-radius: 8px;
+}
+
+.panel-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+
+    th, td {
+        text-align: left;
+        padding: 10px;
+        border-bottom: 1px solid #eee;
+    }
+
+    th {
+        font-weight: bold;
+        background-color: #f9f9f9;
+    }
+}
+
+.form-manual {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+
+        label {
+            font-weight: bold;
+        }
+    }
+
+    .form-actions {
+        margin-top: 10px;
+    }
+}
