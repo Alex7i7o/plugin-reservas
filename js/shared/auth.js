@@ -159,9 +159,8 @@ export function cerrarSesion() {
         });
     }
 
-    // 2. BORRAR el storage (Esto es lo que te faltaba)
+    // 2. Borrar el storage
     sessionStorage.removeItem('userSesion'); 
-    // Si querés borrar TODO lo de la sesión: sessionStorage.clear();
 
     // 3. Limpiar variable en memoria
     window.accessToken = null;
