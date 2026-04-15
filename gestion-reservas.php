@@ -140,7 +140,7 @@ add_filter( 'acf/rest/allow_update', '__return_true' );
 
 // Función para que la reserva se guarde con el título automático (opcional pero ordenado)
 add_filter('wp_insert_post_data', function($data, $postarr) {
-    if($data['post_type'] == 'reserva' && empty($data['post_title'])) {
+    if($data['post_type'] === 'reserva' && empty($data['post_title'])) {
         $data['post_title'] = 'Nueva Reserva - ' . date('Y-m-d H:i');
     }
     return $data;
@@ -337,12 +337,19 @@ function mis_reservas_callback($request) {
             $now = current_time('timestamp');
 
             if ($timestamp >= $now) {
+                $token_cancelacion = get_post_meta($post_id, 'token_cancelacion', true);
+                if (empty($token_cancelacion)) {
+                    $token_cancelacion = wp_generate_password(20, false);
+                    update_post_meta($post_id, 'token_cancelacion', $token_cancelacion);
+                }
+
                 $reservas[] = array(
                     'id' => $post_id,
                     'servicio' => isset($fields['servicio']) ? $fields['servicio'] : '',
                     'fecha' => $fecha,
                     'hora' => $hora,
-                    'timestamp' => $timestamp
+                    'timestamp' => $timestamp,
+                    'token_cancelacion' => $token_cancelacion
                 );
             }
         }
@@ -361,9 +368,15 @@ function cancelar_reserva_callback($request) {
     $parametros = $request->get_json_params();
     $reserva_id = isset($parametros['reserva_id']) ? intval($parametros['reserva_id']) : 0;
     $email = isset($parametros['email']) ? sanitize_email($parametros['email']) : '';
+    $token = isset($parametros['token']) ? sanitize_text_field($parametros['token']) : '';
 
-    if (!$reserva_id || empty($email)) {
+    if (!$reserva_id || empty($email) || empty($token)) {
         return new WP_Error('parametros_invalidos', 'Parámetros inválidos', array('status' => 400));
+    }
+
+    $token_guardado = get_post_meta($reserva_id, 'token_cancelacion', true);
+    if (empty($token_guardado) || !hash_equals($token_guardado, $token)) {
+        return new WP_Error('no_autorizado', 'Token de cancelación inválido', array('status' => 403));
     }
 
     $email_guardado = get_field('email_cliente', $reserva_id);
@@ -561,6 +574,9 @@ function guardar_reserva_callback($request) {
         // Guardamos los datos en ACF / Post meta. 
         update_field('cliente', $cliente, $post_id);
         update_field('email_cliente', $email, $post_id);
+
+        $token_cancelacion = wp_generate_password(20, false);
+        update_post_meta($post_id, 'token_cancelacion', $token_cancelacion);
         update_field('fecha', $fecha, $post_id);
         update_field('hora', $hora, $post_id);
         update_field('hora_fin', $hora_fin, $post_id);
