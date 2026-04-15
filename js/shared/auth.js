@@ -149,8 +149,6 @@ export function mostrarSesionIniciada(perfil) {
 
 
 export function cerrarSesion() {
-    console.log("Cerrando sesión y limpiando persistencia...");
-
     // 1. Revocar el token en Google (Seguridad)
     if (window.accessToken) {
         google.accounts.oauth2.revoke(window.accessToken, () => {
