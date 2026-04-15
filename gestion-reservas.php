@@ -511,11 +511,12 @@ function consultar_disponibilidad_callback($request) {
         if (isset($calendars[$calendarId])) {
             $busy_periods = $calendars[$calendarId]->getBusy();
             if (!empty($busy_periods)) {
+                $timezone = new \DateTimeZone('America/Argentina/Buenos_Aires');
                 foreach ($busy_periods as $period) {
                     $start = new \DateTime($period->getStart());
-                    $start->setTimezone(new \DateTimeZone('America/Argentina/Buenos_Aires'));
+                    $start->setTimezone($timezone);
                     $end = new \DateTime($period->getEnd());
-                    $end->setTimezone(new \DateTimeZone('America/Argentina/Buenos_Aires'));
+                    $end->setTimezone($timezone);
 
                     $ocupados[] = array(
                         'inicio' => $start->format('H:i'),
