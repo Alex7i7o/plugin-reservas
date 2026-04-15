@@ -60,7 +60,11 @@ async function cargarDatosPerfil() {
     }
 
     try {
-        const resp = await fetch(`${appConfig.apiUrl}mis-reservas?email=${window.clienteEmail}`);
+        const resp = await fetch(`${appConfig.apiUrl}mis-reservas?email=${window.clienteEmail}`, {
+            headers: {
+                'X-WP-Nonce': appConfig.nonce
+            }
+        });
         if (resp.ok) {
             const reservas = await resp.json();
             if (reservas.length === 0) {
@@ -112,7 +116,8 @@ async function cancelarReserva(reservaId, tokenCancelacion) {
         const resp = await fetch(`${appConfig.apiUrl}cancelar-reserva`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'X-WP-Nonce': appConfig.nonce
             },
             body: JSON.stringify({
                 reserva_id: reservaId,
