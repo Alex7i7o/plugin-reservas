@@ -32,7 +32,6 @@ export function inicializarGoogleAuth(config) {
                 // Programar cierre automático (response.expires_in suele ser 3600 seg)
                 const tiempoMilisegundos = (response.expires_in - 60) * 1000; // 1 min antes por las dudas
                 setTimeout(() => {
-                    console.log("El token va a expirar pronto...");
                     cerrarSesion();
                 }, tiempoMilisegundos);
 
