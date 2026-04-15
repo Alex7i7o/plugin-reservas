@@ -51,6 +51,7 @@ export async function consultarDisponibilidadNegocio(fecha) {
         const url = `${appConfig.apiUrl}disponibilidad?fecha=${fecha}`;
         const response = await fetch(url, {
             method: 'GET',
+            credentials: 'same-origin',
             headers: {
                 'Content-Type': 'application/json',
                 'X-WP-Nonce': appConfig.nonce

@@ -302,10 +302,17 @@ add_action('rest_api_init', function () {
 });
 
 function mis_reservas_callback($request) {
-    $email = sanitize_email($request->get_param('email'));
-    if (empty($email)) {
-        return new WP_Error('falta_email', 'Se requiere email', array('status' => 400));
+    $user_id = get_current_user_id();
+    if (!$user_id) {
+        return new WP_Error('no_autorizado', 'Debes iniciar sesión', array('status' => 401));
     }
+
+    $user = get_user_by('id', $user_id);
+    if (!$user) {
+        return new WP_Error('no_autorizado', 'Usuario no encontrado', array('status' => 401));
+    }
+
+    $email = $user->user_email;
 
     $args = array(
         'post_type' => 'reserva',
@@ -534,10 +541,21 @@ function consultar_disponibilidad_callback($request) {
 
 // 2. La función que procesa los datos
 function guardar_reserva_callback($request) {
+    $user_id = get_current_user_id();
+    if (!$user_id) {
+        return new WP_Error('no_autorizado', 'Debes iniciar sesión', array('status' => 401));
+    }
+
+    $user = get_user_by('id', $user_id);
+    if (!$user) {
+        return new WP_Error('no_autorizado', 'Usuario no encontrado', array('status' => 401));
+    }
+
+    $email = $user->user_email;
+
     $parametros = $request->get_json_params();
     
     // Sanitización de entradas
-    $email      = isset($parametros['email']) ? sanitize_email($parametros['email']) : '';
     $hora       = isset($parametros['hora']) ? sanitize_text_field($parametros['hora']) : '';
     $hora_fin   = isset($parametros['horaFin']) ? sanitize_text_field($parametros['horaFin']) : '';
     $fecha      = isset($parametros['fecha']) ? sanitize_text_field($parametros['fecha']) : '';
@@ -546,7 +564,6 @@ function guardar_reserva_callback($request) {
     $cliente    = isset($parametros['cliente']) ? sanitize_text_field($parametros['cliente']) : '';
 
     $usar_credito = isset($parametros['usar_credito']) ? $parametros['usar_credito'] : false;
-    $user = get_user_by('email', $email);
 
     if ($usar_credito && $user) {
         $creditos = get_user_meta($user->ID, 'creditos_servicios', true);
@@ -668,6 +685,17 @@ function auth_google_callback($request) {
         $user_id = $user->ID;
     }
 
+    // Autenticar al usuario en WordPress
+    wp_set_current_user($user_id);
+
+    // Manage session tokens properly so nonce generation works
+    $manager = WP_Session_Tokens::get_instance($user_id);
+    $session_token = $manager->create(time() + 14 * DAY_IN_SECONDS);
+    wp_set_auth_cookie($user_id, false, '', $session_token);
+    $_COOKIE[LOGGED_IN_COOKIE] = wp_generate_auth_cookie($user_id, time() + 14 * DAY_IN_SECONDS, 'logged_in', $session_token);
+
+    $nonce = wp_create_nonce('wp_rest');
+
     // Obtener créditos (wallet)
     $creditos = get_user_meta($user_id, 'creditos_servicios', true);
     if (!is_array($creditos)) {
@@ -678,7 +706,8 @@ function auth_google_callback($request) {
         'user_id' => $user_id,
         'email' => $user->user_email,
         'nombre' => $user->first_name,
-        'creditos' => $creditos
+        'creditos' => $creditos,
+        'nonce' => $nonce
     ), 200);
 }
 
