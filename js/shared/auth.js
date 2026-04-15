@@ -155,7 +155,6 @@ export function cerrarSesion() {
         });
     }
 
-    // 2. Borrar el storage
     sessionStorage.clear();
 
     // 3. Limpiar variable en memoria
