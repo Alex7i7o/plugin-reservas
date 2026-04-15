@@ -47,8 +47,6 @@ export async function agendarEnGoogle(datosReserva) {
  * Consulta la disponibilidad del negocio usando la Service Account
  */
 export async function consultarDisponibilidadNegocio(fecha) {
-    console.log("Consultando disponibilidad para:", fecha);
-
     try {
         const url = `${appConfig.apiUrl}disponibilidad?fecha=${fecha}`;
         const response = await fetch(url, {
