@@ -647,11 +647,33 @@ function guardar_reserva_callback($request) {
 // Función para autenticar/crear usuario
 function auth_google_callback($request) {
     $parametros = $request->get_json_params();
-    $email = isset($parametros['email']) ? sanitize_email($parametros['email']) : '';
-    $nombre = isset($parametros['name']) ? sanitize_text_field($parametros['name']) : '';
+    $token = isset($parametros['token']) ? sanitize_text_field($parametros['token']) : '';
+
+    if (empty($token)) {
+        return new WP_Error('falta_token', 'Se requiere el parámetro token', array('status' => 400));
+    }
+
+    try {
+        $client = new \Google\Client();
+        $client_id = get_option('sr_google_client_id');
+        if (empty($client_id)) {
+            $client_id = '57411239751-805cvkqrq4i46f0n37abslrqfkbrtg42.apps.googleusercontent.com'; // Default client ID from WP code
+        }
+        $client->setClientId($client_id);
+
+        $payload = $client->verifyIdToken($token);
+        if (!$payload) {
+             return new WP_Error('token_invalido', 'El token de Google proporcionado es inválido o ha expirado.', array('status' => 401));
+        }
+
+        $email = sanitize_email($payload['email']);
+        $nombre = sanitize_text_field($payload['name']);
+    } catch (\Exception $e) {
+        return new WP_Error('token_invalido', 'Error al verificar el token de Google: ' . $e->getMessage(), array('status' => 401));
+    }
 
     if (empty($email)) {
-        return new WP_Error('falta_email', 'Se requiere el parámetro email', array('status' => 400));
+        return new WP_Error('falta_email', 'No se pudo obtener el email del token', array('status' => 400));
     }
 
     $user = get_user_by('email', $email);

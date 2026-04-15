@@ -62,8 +62,7 @@ async function obtenerPerfilUsuario(token) {
                 'X-WP-Nonce': appConfig.nonce
             },
             body: JSON.stringify({
-                email: perfil.email,
-                name: perfil.name
+                token: token
             })
         });
 
