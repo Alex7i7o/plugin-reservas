@@ -158,7 +158,7 @@ export function cerrarSesion() {
     }
 
     // 2. Borrar el storage
-    sessionStorage.removeItem('userSesion'); 
+    sessionStorage.clear();
 
     // 3. Limpiar variable en memoria
     window.accessToken = null;
