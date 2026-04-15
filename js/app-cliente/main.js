@@ -84,7 +84,7 @@ async function cargarDatosPerfil() {
                         const btn = document.createElement('button');
                         btn.textContent = 'Cancelar Turno';
                         btn.className = 'button button-outline';
-                        btn.onclick = () => cancelarReserva(r.id);
+                        btn.onclick = () => cancelarReserva(r.id, r.token_cancelacion);
                         div.appendChild(btn);
                     } else {
                         const span = document.createElement('span');
@@ -106,7 +106,7 @@ async function cargarDatosPerfil() {
     }
 }
 
-async function cancelarReserva(reservaId) {
+async function cancelarReserva(reservaId, tokenCancelacion) {
     if (!confirm('¿Estás seguro de que querés cancelar este turno?')) return;
     try {
         const resp = await fetch(`${appConfig.apiUrl}cancelar-reserva`, {
@@ -116,7 +116,8 @@ async function cancelarReserva(reservaId) {
             },
             body: JSON.stringify({
                 reserva_id: reservaId,
-                email: window.clienteEmail
+                email: window.clienteEmail,
+                token: tokenCancelacion
             })
         });
 
