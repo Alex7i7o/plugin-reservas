@@ -140,7 +140,7 @@ add_filter( 'acf/rest/allow_update', '__return_true' );
 
 // Función para que la reserva se guarde con el título automático (opcional pero ordenado)
 add_filter('wp_insert_post_data', function($data, $postarr) {
-    if($data['post_type'] == 'reserva' && empty($data['post_title'])) {
+    if($data['post_type'] === 'reserva' && empty($data['post_title'])) {
         $data['post_title'] = 'Nueva Reserva - ' . date('Y-m-d H:i');
     }
     return $data;
