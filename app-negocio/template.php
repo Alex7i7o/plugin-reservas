@@ -29,10 +29,11 @@ $reservas_hoy = array();
 if ($query_hoy->have_posts()) {
     while ($query_hoy->have_posts()) {
         $query_hoy->the_post();
+        $fields = get_fields();
         $reservas_hoy[] = array(
-            'cliente' => get_field('cliente'),
-            'hora' => get_field('hora'),
-            'servicio' => get_field('servicio')
+            'cliente' => isset($fields['cliente']) ? $fields['cliente'] : '',
+            'hora' => isset($fields['hora']) ? $fields['hora'] : '',
+            'servicio' => isset($fields['servicio']) ? $fields['servicio'] : ''
         );
     }
 }
