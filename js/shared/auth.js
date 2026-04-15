@@ -154,7 +154,6 @@ export function cerrarSesion() {
     // 1. Revocar el token en Google (Seguridad)
     if (window.accessToken) {
         google.accounts.oauth2.revoke(window.accessToken, () => {
-            console.log('Token revocado en Google.');
         });
     }
 
