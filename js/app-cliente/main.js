@@ -32,7 +32,7 @@ function verificarSesionYMostrarPerfil() {
     }, 500);
 }
 
-async function cargarDatosPerfil() {
+export async function cargarDatosPerfil() {
     const lista = document.getElementById('mis-reservas-lista');
     const info = document.getElementById('perfil-info');
 
@@ -110,7 +110,7 @@ async function cargarDatosPerfil() {
     }
 }
 
-async function cancelarReserva(reservaId, tokenCancelacion) {
+export async function cancelarReserva(reservaId, tokenCancelacion) {
     if (!confirm('¿Estás seguro de que querés cancelar este turno?')) return;
     try {
         const resp = await fetch(`${appConfig.apiUrl}cancelar-reserva`, {
