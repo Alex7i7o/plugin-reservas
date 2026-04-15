@@ -326,8 +326,10 @@ function mis_reservas_callback($request) {
     if ($query->have_posts()) {
         while ($query->have_posts()) {
             $query->the_post();
-            $fecha = get_field('fecha');
-            $hora = get_field('hora');
+            $post_id = get_the_ID();
+            $fields = get_fields($post_id);
+            $fecha = isset($fields['fecha']) ? $fields['fecha'] : '';
+            $hora = isset($fields['hora']) ? $fields['hora'] : '';
 
             // Convert to timestamp
             $datetime_str = $fecha . ' ' . $hora;
@@ -336,8 +338,8 @@ function mis_reservas_callback($request) {
 
             if ($timestamp >= $now) {
                 $reservas[] = array(
-                    'id' => get_the_ID(),
-                    'servicio' => get_field('servicio'),
+                    'id' => $post_id,
+                    'servicio' => isset($fields['servicio']) ? $fields['servicio'] : '',
                     'fecha' => $fecha,
                     'hora' => $hora,
                     'timestamp' => $timestamp
