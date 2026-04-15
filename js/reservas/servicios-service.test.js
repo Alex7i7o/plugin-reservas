@@ -25,4 +25,17 @@ describe('servicios-service', () => {
         expect(consoleSpy).toHaveBeenCalled();
         consoleSpy.mockRestore();
     });
+
+    it('returns services when fetch response is ok', async () => {
+        const mockServicios = [{ id: 1, nombre: 'Servicio 1' }];
+        global.fetch.mockResolvedValueOnce({
+            ok: true,
+            json: jest.fn().mockResolvedValue(mockServicios),
+        });
+
+        const result = await obtenerServiciosDesdeWP();
+
+        expect(global.fetch).toHaveBeenCalledWith('http://example.com/api/servicio');
+        expect(result).toEqual(mockServicios);
+    });
 });
