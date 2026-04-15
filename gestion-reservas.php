@@ -261,25 +261,27 @@ function insertar_en_calendario_negocio($reserva_data) {
 
 // 1. Registramos la ruta correctamente
 add_action('rest_api_init', function () {
+    $verificar_nonce = function ($request) {
+        $nonce = $request->get_header('x_wp_nonce');
+        return wp_verify_nonce($nonce, 'wp_rest') ? true : new WP_Error('rest_forbidden', 'Nonce inválido', array('status' => 401));
+    };
+
     register_rest_route('wp/v2', '/auth-google', array(
         'methods' => 'POST',
         'callback' => 'auth_google_callback',
-        'permission_callback' => '__return_true', // En un entorno real podrías validar el token de Google
+        'permission_callback' => $verificar_nonce,
     ));
 
     register_rest_route('wp/v2', '/reserva', array( // Cambiamos a wp/v2 para coincidir con tu JS
         'methods' => 'POST',
         'callback' => 'guardar_reserva_callback',
-        'permission_callback' => function ($request) {
-            $nonce = $request->get_header('x_wp_nonce');
-            return wp_verify_nonce($nonce, 'wp_rest') ? true : new WP_Error('rest_forbidden', 'Nonce inválido', array('status' => 401));
-        },
+        'permission_callback' => $verificar_nonce,
     ));
 
     register_rest_route('wp/v2', '/disponibilidad', array(
         'methods' => 'GET',
         'callback' => 'consultar_disponibilidad_callback',
-        'permission_callback' => '__return_true',
+        'permission_callback' => $verificar_nonce,
     ));
 
     register_rest_route('wp/v2', '/reserva/pago-confirmado', array(
@@ -291,13 +293,13 @@ add_action('rest_api_init', function () {
     register_rest_route('wp/v2', '/mis-reservas', array(
         'methods' => 'GET',
         'callback' => 'mis_reservas_callback',
-        'permission_callback' => '__return_true',
+        'permission_callback' => $verificar_nonce,
     ));
 
     register_rest_route('wp/v2', '/cancelar-reserva', array(
         'methods' => 'POST',
         'callback' => 'cancelar_reserva_callback',
-        'permission_callback' => '__return_true',
+        'permission_callback' => $verificar_nonce,
     ));
 });
 
