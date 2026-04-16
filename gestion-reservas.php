@@ -222,6 +222,7 @@ add_action('wp_enqueue_scripts', 'encolar_scripts_reservas');
 // Este filtro ahora sí va a encontrar 'reserva-auth', 'reserva-main' y 'app-cliente-main'
 add_filter('script_loader_tag', function($tag, $handle, $src) {
     if (in_array($handle, array('reserva-main', 'app-cliente-main'))) {
+        $tag = preg_replace('/type=(["\']).*?\1\s*/', '', $tag);
         $tag = str_replace('<script ', '<script type="module" ', $tag);
     }
     return $tag;
