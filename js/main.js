@@ -10,89 +10,98 @@ import {
 } from './reservas/reservas-ui.js';
 import { verificarDiaYGenerarHorarios } from './reservas/horarios-logic.js';
 
-// 1. Inicio automático
-inicializarGoogleAuth(appConfig);
+document.addEventListener('DOMContentLoaded', () => {
+    // 1. Inicio automático
+    inicializarGoogleAuth(appConfig);
 
-// Verificar si venimos de un pago fallido/cancelado
-const urlParams = new URLSearchParams(window.location.search);
-const paymentStatus = urlParams.get('payment');
-if (paymentStatus === 'failed') {
-    alert("El pago fue rechazado o cancelado. Por favor, intentá nuevamente.");
-    // Limpiamos la URL para no mostrar el error en recargas
-    window.history.replaceState({}, document.title, window.location.pathname);
-}
+    const reservaApp = document.getElementById('reserva-app');
+    if (!reservaApp) return;
 
-// 2. Carga de servicios al arrancar
-obtenerServiciosDesdeWP()
-    .then(servicios => llenarSelectServicios(servicios))
-    .catch(err => console.error("Fallo carga inicial:", err));
+    // Verificar si venimos de un pago fallido/cancelado
+    const urlParams = new URLSearchParams(window.location.search);
+    const paymentStatus = urlParams.get('payment');
+    if (paymentStatus === 'failed') {
+        alert("El pago fue rechazado o cancelado. Por favor, intentá nuevamente.");
+        // Limpiamos la URL para no mostrar el error en recargas
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
 
-// 3. Eventos
-const btnLogin = document.getElementById('btn-google-login');
+    // 2. Carga de servicios al arrancar
+    obtenerServiciosDesdeWP()
+        .then(servicios => llenarSelectServicios(servicios))
+        .catch(err => console.error("Fallo carga inicial:", err));
 
-// Solo asignamos el evento si el botón realmente está en la página
-if (btnLogin) {
-    btnLogin.onclick = loginConGoogle;
-} else {
-    console.log("El botón de login no está en esta pantalla, saltando asignación.");
-}
+    // 3. Eventos
+    const btnLogin = document.getElementById('btn-google-login');
 
-const selectServicios = document.getElementById('select-servicios');
-if (selectServicios) {
-    selectServicios.addEventListener('change', (e) => {
-        // Handle Tom Select which doesn't directly trigger selectedOptions on the event target reliably in some versions,
-        // or just use the native select element directly.
-        const selectElement = e.target;
-        const opcion = selectElement.options[selectElement.selectedIndex];
-        
-        if (opcion && opcion.value !== "") {
-            window.servicioSeleccionado = opcion.text;
-            window.servicioId = opcion.value;
-            window.duracionSeleccionada = opcion.dataset.duracion;
-
-            // Usamos tu función de UI
-            mostrarPaso('calendar-section');
-
-            // Si ya hay fecha, refrescamos horarios
-            const fechaInput = document.getElementById('fecha-reserva');
-            if (fechaInput && fechaInput.value) {
-                verificarDiaYGenerarHorarios(fechaInput.value).catch(err => console.error("Error al generar horarios:", err));
-            }
-        }
-    });
-}
-
-// Initialize Flatpickr for the date input
-const fechaReservaInput = document.getElementById('fecha-reserva');
-if (fechaReservaInput) {
-    if (typeof flatpickr !== 'undefined') {
-        flatpickr("#fecha-reserva", {
-            minDate: "today",
-            disable: [
-                function(date) {
-                    // Return true to disable Sundays (0 = Sunday)
-                    return (date.getDay() === 0);
-                }
-            ],
-            onChange: function(selectedDates, dateStr, instance) {
-                if (dateStr) {
-                    verificarDiaYGenerarHorarios(dateStr).catch(err => console.error("Error al generar horarios:", err));
-                }
-            }
-        });
+    // Solo asignamos el evento si el botón realmente está en la página
+    if (btnLogin) {
+        btnLogin.onclick = loginConGoogle;
     } else {
-        // Fallback if flatpickr doesn't load
-        fechaReservaInput.addEventListener('change', (e) => {
-            verificarDiaYGenerarHorarios(e.target.value).catch(err => console.error("Error al generar horarios:", err));
+        console.log("El botón de login no está en esta pantalla, saltando asignación.");
+    }
+
+    const selectServicios = document.getElementById('select-servicios');
+    if (selectServicios) {
+        selectServicios.addEventListener('change', (e) => {
+            // Handle Tom Select which doesn't directly trigger selectedOptions on the event target reliably in some versions,
+            // or just use the native select element directly.
+            const selectElement = e.target;
+            const opcion = selectElement.options[selectElement.selectedIndex];
+
+            if (opcion && opcion.value !== "") {
+                window.servicioSeleccionado = opcion.text;
+                window.servicioId = opcion.value;
+                window.duracionSeleccionada = opcion.dataset.duracion;
+
+                // Usamos tu función de UI
+                mostrarPaso('calendar-section');
+
+                // Si ya hay fecha, refrescamos horarios
+                const fechaInput = document.getElementById('fecha-reserva');
+                if (fechaInput && fechaInput.value) {
+                    verificarDiaYGenerarHorarios(fechaInput.value).catch(err => console.error("Error al generar horarios:", err));
+                }
+            }
         });
     }
-} else {
-    console.log("El input de fecha no está en esta pantalla, saltando inicialización de flatpickr.");
-}
 
+    // Initialize Flatpickr for the date input
+    const fechaReservaInput = document.getElementById('fecha-reserva');
+    if (fechaReservaInput) {
+        if (typeof flatpickr !== 'undefined') {
+            flatpickr("#fecha-reserva", {
+                minDate: "today",
+                disable: [
+                    function(date) {
+                        // Return true to disable Sundays (0 = Sunday)
+                        return (date.getDay() === 0);
+                    }
+                ],
+                onChange: function(selectedDates, dateStr, instance) {
+                    if (dateStr) {
+                        verificarDiaYGenerarHorarios(dateStr).catch(err => console.error("Error al generar horarios:", err));
+                    }
+                }
+            });
+        } else {
+            // Fallback if flatpickr doesn't load
+            fechaReservaInput.addEventListener('change', (e) => {
+                verificarDiaYGenerarHorarios(e.target.value).catch(err => console.error("Error al generar horarios:", err));
+            });
+        }
+    } else {
+        console.log("El input de fecha no está en esta pantalla, saltando inicialización de flatpickr.");
+    }
 
-
-
+    // Escuchador para el botón final
+    const btnConfirmarFinal = document.getElementById('btn-confirmar-final');
+    if (btnConfirmarFinal) {
+        btnConfirmarFinal.onclick = confirmarReservaFinal;
+    } else {
+        console.log("El botón de confirmación final no está en esta pantalla, saltando asignación.");
+    }
+});
 
 // Variables globales para los datos seleccionados
 window.servicioSeleccionado = "";
@@ -155,16 +164,5 @@ async function confirmarReservaFinal() {
     }
 }
 
-// Escuchador para el botón final
-const btnConfirmarFinal = document.getElementById('btn-confirmar-final');
-if (btnConfirmarFinal) {
-    btnConfirmarFinal.onclick = confirmarReservaFinal;
-} else {
-    console.log("El botón de confirmación final no está en esta pantalla, saltando asignación.");
-}
-
-// -----------------
-
-
-
-
+// Exported for testing
+export { confirmarReservaFinal };

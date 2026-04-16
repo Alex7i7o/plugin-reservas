@@ -67,31 +67,35 @@ export function seleccionarHorario(hora, event) {
 
     // 2. Guardamos la elección en nuestras variables globales
     window.horarioSeleccionado = hora;
-    window.fechaSeleccionada = document.getElementById('fecha-reserva').value;
+
+    const fechaReserva = document.getElementById('fecha-reserva');
+    if (fechaReserva) window.fechaSeleccionada = fechaReserva.value;
 
     const select = document.getElementById('select-servicios');
-    window.servicioSeleccionado = select.options[select.selectedIndex].text;
+    if (select) window.servicioSeleccionado = select.options[select.selectedIndex].text;
 
     // 3. ¡La clave! Cambiamos el display de 'none' a 'block'
     const confirmSection = document.getElementById('confirmacion-section');
-    confirmSection.style.display = 'block';
+    if (confirmSection) confirmSection.style.display = 'block';
 
     // 4. Mostramos el resumen para que el cliente esté seguro
     const resumenTexto = document.getElementById('resumen-texto');
-    resumenTexto.textContent = ''; // Limpiamos
+    if (resumenTexto) {
+        resumenTexto.textContent = ''; // Limpiamos
 
-    const crearLineaResumen = (etiqueta, valor) => {
-        const strong = document.createElement('strong');
-        strong.textContent = etiqueta + ':';
-        resumenTexto.appendChild(strong);
-        resumenTexto.appendChild(document.createTextNode(` ${valor}`));
-        resumenTexto.appendChild(document.createElement('br'));
-    };
+        const crearLineaResumen = (etiqueta, valor) => {
+            const strong = document.createElement('strong');
+            strong.textContent = etiqueta + ':';
+            resumenTexto.appendChild(strong);
+            resumenTexto.appendChild(document.createTextNode(` ${valor}`));
+            resumenTexto.appendChild(document.createElement('br'));
+        };
 
-    crearLineaResumen('Servicio', window.servicioSeleccionado);
-    crearLineaResumen('Día', window.fechaSeleccionada);
-    crearLineaResumen('Hora', `${window.horarioSeleccionado} hs.`);
+        crearLineaResumen('Servicio', window.servicioSeleccionado);
+        crearLineaResumen('Día', window.fechaSeleccionada);
+        crearLineaResumen('Hora', `${window.horarioSeleccionado} hs.`);
+    }
 
     // 5. Scroll suave hasta el botón para que el usuario lo vea (opcional)
-    confirmSection.scrollIntoView({ behavior: 'smooth' });
+    if (confirmSection) confirmSection.scrollIntoView({ behavior: 'smooth' });
 }

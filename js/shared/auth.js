@@ -3,10 +3,14 @@
 // Definimos la variable en el scope del módulo (no global)
 let tokenClient;
 
-export function inicializarGoogleAuth(config) {
+export function inicializarGoogleAuth(config, retryCount = 0) {
     if (typeof google === 'undefined') {
+        if (retryCount >= 10) {
+            console.error("Error: No se pudo cargar la librería de Google después de 10 intentos.");
+            return;
+        }
         console.error("La librería de Google no ha cargado aún. Reintentando...");
-        setTimeout(() => inicializarGoogleAuth(config), 500); // Reintenta en medio segundo
+        setTimeout(() => inicializarGoogleAuth(config, retryCount + 1), 500); // Reintenta en medio segundo
         return;
     }
     // 1. Verificamos si hay sesión previa
