@@ -18,6 +18,9 @@ export function inicializarGoogleAuth(config) {
         window.clienteEmail = perfil.email;
         window.clienteNombre = perfil.name;
         window.clienteCreditos = perfil.creditos || {};
+        if (perfil.nonce) {
+            appConfig.nonce = perfil.nonce;
+        }
         mostrarSesionIniciada(perfil);
     }
 
@@ -57,6 +60,7 @@ async function obtenerPerfilUsuario(token) {
     try {
         const wpResp = await fetch(appConfig.apiUrl + 'auth-google', {
             method: 'POST',
+            credentials: 'same-origin',
             headers: {
                 'Content-Type': 'application/json',
                 'X-WP-Nonce': appConfig.nonce
@@ -70,6 +74,10 @@ async function obtenerPerfilUsuario(token) {
             const wpData = await wpResp.json();
             perfil.wpUserId = wpData.user_id;
             perfil.creditos = wpData.creditos;
+            if (wpData.nonce) {
+                appConfig.nonce = wpData.nonce;
+                perfil.nonce = wpData.nonce;
+            }
         } else {
             console.error("No se pudo autenticar en WP");
         }

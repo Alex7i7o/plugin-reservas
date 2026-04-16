@@ -1,6 +1,7 @@
 export async function guardarReservaEnWP(datos) {
     const response = await fetch(`${appConfig.apiUrl}reserva`, {
         method: 'POST',
+        credentials: 'same-origin',
         headers: {
             'Content-Type': 'application/json',
             'X-WP-Nonce': appConfig.nonce
