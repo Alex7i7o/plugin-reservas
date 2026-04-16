@@ -11,11 +11,11 @@ import {
 import { verificarDiaYGenerarHorarios } from './reservas/horarios-logic.js';
 
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Inicio automático
-    inicializarGoogleAuth(appConfig);
-
     const reservaApp = document.getElementById('reserva-app');
     if (!reservaApp) return;
+
+    // 1. Inicio automático
+    inicializarGoogleAuth(appConfig);
 
     // Verificar si venimos de un pago fallido/cancelado
     const urlParams = new URLSearchParams(window.location.search);
