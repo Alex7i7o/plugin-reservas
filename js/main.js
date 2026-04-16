@@ -63,26 +63,31 @@ if (selectServicios) {
 }
 
 // Initialize Flatpickr for the date input
-if (typeof flatpickr !== 'undefined') {
-    flatpickr("#fecha-reserva", {
-        minDate: "today",
-        disable: [
-            function(date) {
-                // Return true to disable Sundays (0 = Sunday)
-                return (date.getDay() === 0);
+const fechaReservaInput = document.getElementById('fecha-reserva');
+if (fechaReservaInput) {
+    if (typeof flatpickr !== 'undefined') {
+        flatpickr("#fecha-reserva", {
+            minDate: "today",
+            disable: [
+                function(date) {
+                    // Return true to disable Sundays (0 = Sunday)
+                    return (date.getDay() === 0);
+                }
+            ],
+            onChange: function(selectedDates, dateStr, instance) {
+                if (dateStr) {
+                    verificarDiaYGenerarHorarios(dateStr).catch(err => console.error("Error al generar horarios:", err));
+                }
             }
-        ],
-        onChange: function(selectedDates, dateStr, instance) {
-            if (dateStr) {
-                verificarDiaYGenerarHorarios(dateStr).catch(err => console.error("Error al generar horarios:", err));
-            }
-        }
-    });
+        });
+    } else {
+        // Fallback if flatpickr doesn't load
+        fechaReservaInput.addEventListener('change', (e) => {
+            verificarDiaYGenerarHorarios(e.target.value).catch(err => console.error("Error al generar horarios:", err));
+        });
+    }
 } else {
-    // Fallback if flatpickr doesn't load
-    document.getElementById('fecha-reserva').addEventListener('change', (e) => {
-        verificarDiaYGenerarHorarios(e.target.value).catch(err => console.error("Error al generar horarios:", err));
-    });
+    console.log("El input de fecha no está en esta pantalla, saltando inicialización de flatpickr.");
 }
 
 
@@ -151,7 +156,12 @@ async function confirmarReservaFinal() {
 }
 
 // Escuchador para el botón final
-document.getElementById('btn-confirmar-final').onclick = confirmarReservaFinal;
+const btnConfirmarFinal = document.getElementById('btn-confirmar-final');
+if (btnConfirmarFinal) {
+    btnConfirmarFinal.onclick = confirmarReservaFinal;
+} else {
+    console.log("El botón de confirmación final no está en esta pantalla, saltando asignación.");
+}
 
 // -----------------
 

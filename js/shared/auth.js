@@ -98,62 +98,80 @@ async function obtenerPerfilUsuario(token) {
 
 export function mostrarSesionIniciada(perfil) {
     const loginSection = document.getElementById('login-section');
-    if (!loginSection) return;
+    const loginSectionCliente = document.getElementById('login-section-cliente');
+
+    // Si no existe ninguna de las dos secciones de login, salimos
+    if (!loginSection && !loginSectionCliente) return;
 
     const fotoUrl = perfil.picture || perfil.avatar || 'https://via.placeholder.com/40';
 
-    // Clear existing content safely
-    loginSection.textContent = '';
+    // Función auxiliar para crear la UI del usuario
+    const crearUIUsuario = () => {
+        const container = document.createElement('div');
+        container.className = 'user-ready';
+        container.style.display = 'flex';
+        container.style.alignItems = 'center';
+        container.style.gap = '10px';
 
-    const container = document.createElement('div');
-    container.className = 'user-ready';
-    container.style.display = 'flex';
-    container.style.alignItems = 'center';
-    container.style.gap = '10px';
+        const img = document.createElement('img');
+        img.src = fotoUrl;
+        img.referrerPolicy = 'no-referrer';
+        img.style.borderRadius = '50%';
+        img.style.width = '40px';
+        img.style.border = '2px solid #ff6b00';
+        container.appendChild(img);
 
-    const img = document.createElement('img');
-    img.src = fotoUrl;
-    img.referrerPolicy = 'no-referrer';
-    img.style.borderRadius = '50%';
-    img.style.width = '40px';
-    img.style.border = '2px solid #ff6b00';
-    container.appendChild(img);
+        const span = document.createElement('span');
+        span.textContent = 'Listo, ';
+        const strong = document.createElement('strong');
+        strong.textContent = perfil.name;
+        span.appendChild(strong);
+        container.appendChild(span);
 
-    const span = document.createElement('span');
-    span.textContent = 'Listo, ';
-    const strong = document.createElement('strong');
-    strong.textContent = perfil.name;
-    span.appendChild(strong);
-    container.appendChild(span);
+        const btnLogout = document.createElement('button');
+        btnLogout.style.background = 'none';
+        btnLogout.style.border = 'none';
+        btnLogout.style.color = '#ff6b00';
+        btnLogout.style.cursor = 'pointer';
+        btnLogout.style.textDecoration = 'underline';
+        btnLogout.style.fontSize = '12px';
+        btnLogout.textContent = '(Cerrar Sesión)';
+        btnLogout.onclick = (e) => {
+            e.preventDefault();
+            cerrarSesion();
+        };
+        container.appendChild(btnLogout);
 
-    const btnLogout = document.createElement('button');
-    btnLogout.id = 'btn-logout';
-    btnLogout.style.background = 'none';
-    btnLogout.style.border = 'none';
-    btnLogout.style.color = '#ff6b00';
-    btnLogout.style.cursor = 'pointer';
-    btnLogout.style.textDecoration = 'underline';
-    btnLogout.style.fontSize = '12px';
-    btnLogout.textContent = '(Cerrar Sesión)';
-    btnLogout.onclick = (e) => {
-        e.preventDefault();
-        cerrarSesion();
+        return container;
     };
-    container.appendChild(btnLogout);
 
-    loginSection.appendChild(container);
+    if (loginSection) {
+        // Clear existing content safely
+        loginSection.textContent = '';
+        loginSection.appendChild(crearUIUsuario());
 
-    const serviceSection = document.getElementById('service-section');
-    if (serviceSection) {
-        serviceSection.style.display = 'block';
+        const serviceSection = document.getElementById('service-section');
+        if (serviceSection) {
+            serviceSection.style.display = 'block';
+        }
+
+        const btnMiPerfil = document.getElementById('btn-mi-perfil');
+        if (btnMiPerfil) {
+            btnMiPerfil.style.display = 'inline-block';
+        }
     }
 
-    const btnMiPerfil = document.getElementById('btn-mi-perfil');
-    if (btnMiPerfil) {
-        btnMiPerfil.style.display = 'inline-block';
+    if (loginSectionCliente) {
+        // Clear existing content safely
+        loginSectionCliente.textContent = '';
+        loginSectionCliente.appendChild(crearUIUsuario());
+
+        const perfilSectionCliente = document.getElementById('perfil-section-cliente');
+        if (perfilSectionCliente) {
+            perfilSectionCliente.style.display = 'block';
+        }
     }
 }
-
 
 export function cerrarSesion() {
     // 1. Revocar el token en Google (Seguridad)
