@@ -201,6 +201,7 @@ describe('consultarDisponibilidadNegocio', () => {
             'https://example.com/wp-json/wp/v2/disponibilidad?fecha=2023-11-01',
             {
                 method: 'GET',
+                credentials: 'same-origin',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-WP-Nonce': 'dummy-nonce'

@@ -219,10 +219,10 @@ function encolar_scripts_reservas() {
 }
 add_action('wp_enqueue_scripts', 'encolar_scripts_reservas');
 
-// Este filtro ahora sí va a encontrar 'reserva-auth' y 'reserva-main'
+// Este filtro ahora sí va a encontrar 'reserva-auth', 'reserva-main' y 'app-cliente-main'
 add_filter('script_loader_tag', function($tag, $handle, $src) {
-    // Si el nombre del script (handle) contiene 'reserva-', le ponemos type="module"
-    if (strpos($handle, 'reserva-') !== false) {
+    // Si el nombre del script (handle) contiene 'reserva-' o 'app-cliente-', le ponemos type="module"
+    if (strpos($handle, 'reserva-') !== false || strpos($handle, 'app-cliente-') !== false) {
         $tag = '<script type="module" src="' . esc_url($src) . '" id="' . esc_attr($handle) . '-js"></script>';
     }
     return $tag;
