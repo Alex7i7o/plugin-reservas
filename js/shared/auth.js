@@ -66,8 +66,7 @@ async function obtenerPerfilUsuario(token) {
                 'X-WP-Nonce': appConfig.nonce
             },
             body: JSON.stringify({
-                email: perfil.email,
-                name: perfil.name
+                token: token
             })
         });
 
@@ -163,7 +162,6 @@ export function cerrarSesion() {
         });
     }
 
-    // 2. Borrar el storage
     sessionStorage.clear();
 
     // 3. Limpiar variable en memoria

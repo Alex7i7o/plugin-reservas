@@ -261,25 +261,27 @@ function insertar_en_calendario_negocio($reserva_data) {
 
 // 1. Registramos la ruta correctamente
 add_action('rest_api_init', function () {
+    $verificar_nonce = function ($request) {
+        $nonce = $request->get_header('x_wp_nonce');
+        return wp_verify_nonce($nonce, 'wp_rest') ? true : new WP_Error('rest_forbidden', 'Nonce inválido', array('status' => 401));
+    };
+
     register_rest_route('wp/v2', '/auth-google', array(
         'methods' => 'POST',
         'callback' => 'auth_google_callback',
-        'permission_callback' => '__return_true', // En un entorno real podrías validar el token de Google
+        'permission_callback' => $verificar_nonce,
     ));
 
     register_rest_route('wp/v2', '/reserva', array( // Cambiamos a wp/v2 para coincidir con tu JS
         'methods' => 'POST',
         'callback' => 'guardar_reserva_callback',
-        'permission_callback' => function ($request) {
-            $nonce = $request->get_header('x_wp_nonce');
-            return wp_verify_nonce($nonce, 'wp_rest') ? true : new WP_Error('rest_forbidden', 'Nonce inválido', array('status' => 401));
-        },
+        'permission_callback' => $verificar_nonce,
     ));
 
     register_rest_route('wp/v2', '/disponibilidad', array(
         'methods' => 'GET',
         'callback' => 'consultar_disponibilidad_callback',
-        'permission_callback' => '__return_true',
+        'permission_callback' => $verificar_nonce,
     ));
 
     register_rest_route('wp/v2', '/reserva/pago-confirmado', array(
@@ -291,13 +293,13 @@ add_action('rest_api_init', function () {
     register_rest_route('wp/v2', '/mis-reservas', array(
         'methods' => 'GET',
         'callback' => 'mis_reservas_callback',
-        'permission_callback' => '__return_true',
+        'permission_callback' => $verificar_nonce,
     ));
 
     register_rest_route('wp/v2', '/cancelar-reserva', array(
         'methods' => 'POST',
         'callback' => 'cancelar_reserva_callback',
-        'permission_callback' => '__return_true',
+        'permission_callback' => $verificar_nonce,
     ));
 });
 
@@ -518,11 +520,12 @@ function consultar_disponibilidad_callback($request) {
         if (isset($calendars[$calendarId])) {
             $busy_periods = $calendars[$calendarId]->getBusy();
             if (!empty($busy_periods)) {
+                $timezone = new \DateTimeZone('America/Argentina/Buenos_Aires');
                 foreach ($busy_periods as $period) {
                     $start = new \DateTime($period->getStart());
-                    $start->setTimezone(new \DateTimeZone('America/Argentina/Buenos_Aires'));
+                    $start->setTimezone($timezone);
                     $end = new \DateTime($period->getEnd());
-                    $end->setTimezone(new \DateTimeZone('America/Argentina/Buenos_Aires'));
+                    $end->setTimezone($timezone);
 
                     $ocupados[] = array(
                         'inicio' => $start->format('H:i'),
@@ -661,11 +664,33 @@ function guardar_reserva_callback($request) {
 // Función para autenticar/crear usuario
 function auth_google_callback($request) {
     $parametros = $request->get_json_params();
-    $email = isset($parametros['email']) ? sanitize_email($parametros['email']) : '';
-    $nombre = isset($parametros['name']) ? sanitize_text_field($parametros['name']) : '';
+    $token = isset($parametros['token']) ? sanitize_text_field($parametros['token']) : '';
+
+    if (empty($token)) {
+        return new WP_Error('falta_token', 'Se requiere el parámetro token', array('status' => 400));
+    }
+
+    try {
+        $client = new \Google\Client();
+        $client_id = get_option('sr_google_client_id');
+        if (empty($client_id)) {
+            $client_id = '57411239751-805cvkqrq4i46f0n37abslrqfkbrtg42.apps.googleusercontent.com'; // Default client ID from WP code
+        }
+        $client->setClientId($client_id);
+
+        $payload = $client->verifyIdToken($token);
+        if (!$payload) {
+             return new WP_Error('token_invalido', 'El token de Google proporcionado es inválido o ha expirado.', array('status' => 401));
+        }
+
+        $email = sanitize_email($payload['email']);
+        $nombre = sanitize_text_field($payload['name']);
+    } catch (\Exception $e) {
+        return new WP_Error('token_invalido', 'Error al verificar el token de Google: ' . $e->getMessage(), array('status' => 401));
+    }
 
     if (empty($email)) {
-        return new WP_Error('falta_email', 'Se requiere el parámetro email', array('status' => 400));
+        return new WP_Error('falta_email', 'No se pudo obtener el email del token', array('status' => 400));
     }
 
     $user = get_user_by('email', $email);
