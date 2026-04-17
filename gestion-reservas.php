@@ -266,6 +266,13 @@ add_action('rest_api_init', function () {
         return wp_verify_nonce($nonce, 'wp_rest') ? true : new WP_Error('rest_forbidden', 'Nonce inválido', array('status' => 401));
     };
 
+    $verificar_auth = function ($request) {
+        if (!is_user_logged_in()) {
+            return new WP_Error('rest_not_logged_in', 'Debes iniciar sesión.', array('status' => 401));
+        }
+        return true;
+    };
+
     register_rest_route('wp/v2', '/auth-google', array(
         'methods' => 'POST',
         'callback' => 'auth_google_callback',
@@ -275,7 +282,7 @@ add_action('rest_api_init', function () {
     register_rest_route('wp/v2', '/reserva', array( // Cambiamos a wp/v2 para coincidir con tu JS
         'methods' => 'POST',
         'callback' => 'guardar_reserva_callback',
-        'permission_callback' => $verificar_nonce,
+        'permission_callback' => $verificar_auth,
     ));
 
     register_rest_route('wp/v2', '/disponibilidad', array(
@@ -293,13 +300,13 @@ add_action('rest_api_init', function () {
     register_rest_route('wp/v2', '/mis-reservas', array(
         'methods' => 'GET',
         'callback' => 'mis_reservas_callback',
-        'permission_callback' => $verificar_nonce,
+        'permission_callback' => $verificar_auth,
     ));
 
     register_rest_route('wp/v2', '/cancelar-reserva', array(
         'methods' => 'POST',
         'callback' => 'cancelar_reserva_callback',
-        'permission_callback' => $verificar_nonce,
+        'permission_callback' => $verificar_auth,
     ));
 });
 
