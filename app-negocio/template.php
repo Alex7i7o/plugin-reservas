@@ -117,62 +117,37 @@ usort($reservas_hoy, function($a, $b) {
             <div id="section-todos" class="app-section" style="display: none;">
                 <div class="panel-card">
                     <h2>Todos los Turnos</h2>
-                    <p>Tabla con buscador y filtros (usar DatePicker para rango de fechas).</p>
-                    <!-- Aquí irá la tabla con buscador en un futuro -->
+                    <div class="table-filters" style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+                        <input type="text" id="filter-cliente" class="input-pro" placeholder="Buscar por cliente..." style="flex: 1; min-width: 200px;">
+                        <input type="date" id="filter-date-from" class="input-pro" placeholder="Desde" style="width: auto;">
+                        <input type="date" id="filter-date-to" class="input-pro" placeholder="Hasta" style="width: auto;">
+                        <button id="btn-filter-today" class="button button-primary" style="padding: 0.5rem 1rem;">Hoy</button>
+                        <button id="btn-filter-clear" class="button" style="padding: 0.5rem 1rem;">Limpiar</button>
+                    </div>
+                    <div id="appointments-table-container">
+                        <p>Cargando turnos...</p>
+                    </div>
                 </div>
             </div>
 
             <div id="section-carga-manual" class="app-section" style="display: none;">
                 <div class="panel-card">
                     <h2>Carga Manual de Turno</h2>
-                    <form method="post" action="" class="form-manual">
-                        <?php wp_nonce_field('sr_turno_manual_action', 'sr_turno_manual_nonce'); ?>
-
-                        <div class="form-group">
-                            <label for="cliente">Nombre del Cliente</label>
-                            <input name="cliente" type="text" id="cliente" class="input-pro" required>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="email">Email</label>
-                            <input name="email" type="email" id="email" class="input-pro" required>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="servicio">Servicio</label>
-                            <select name="servicio" id="servicio" class="input-pro" required>
-                                <option value="">Seleccione un servicio</option>
-                                <?php foreach ($servicios as $srv): ?>
-                                    <option value="<?php echo esc_attr($srv->post_title); ?>"><?php echo esc_html($srv->post_title); ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="fecha">Fecha</label>
-                            <input name="fecha" type="date" id="fecha" class="input-pro" required>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="hora">Hora Inicio</label>
-                            <input name="hora" type="time" id="hora" class="input-pro" required>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="hora_fin">Hora Fin</label>
-                            <input name="hora_fin" type="time" id="hora_fin" class="input-pro">
-                        </div>
-
-                        <div class="form-actions">
-                            <button type="submit" name="submit" id="submit" class="button button-primary btn-reserva">Agendar Turno Manualmente</button>
-                        </div>
+                    <form id="form-carga-manual" class="form-manual">
+                        <!-- Será rellenado por JS -->
                     </form>
                 </div>
             </div>
 
             <div id="section-servicios" class="app-section" style="display: none;">
                 <div class="panel-card">
-                    <h2>Crear Nuevo Servicio</h2>
+                    <h2>Gestión de Servicios</h2>
+                    <div id="servicios-table-container" style="margin-bottom: 2rem;">
+                        <p>Cargando servicios...</p>
+                    </div>
+                    <hr>
+                    <h2 id="servicio-form-title">Crear Nuevo Servicio</h2>
+                    <button type="button" id="btn-cancelar-edicion" class="button" style="display:none; margin-bottom: 1rem;">Cancelar Edición</button>
                     <form id="form-crear-servicio" class="form-crear-servicio">
                         <div class="form-group">
                             <label for="servicio-titulo">Nombre del Servicio</label>

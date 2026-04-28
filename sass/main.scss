@@ -30,4 +30,5 @@ body {
 #reserva-app input[type="tel"],
 #reserva-app textarea {
     caret-color: #4b3669 !important; /* El cursor vuelve a ser violeta acá */
-}
+}@import 'tables';
+@import 'forms';

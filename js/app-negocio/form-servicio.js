@@ -1,4 +1,34 @@
 import { initAppLayout } from './AppLayout.js';
+import { fetchAndRenderServicios } from './services-list.js';
+
+let editingServiceId = null;
+
+export function openEditForm(serviceData) {
+    document.getElementById('servicio-form-title').textContent = 'Editar Servicio';
+    document.getElementById('btn-submit-servicio').textContent = 'Actualizar Servicio';
+    document.getElementById('btn-cancelar-edicion').style.display = 'inline-block';
+
+    document.getElementById('servicio-titulo').value = serviceData.titulo || '';
+    document.getElementById('servicio-contenido').value = serviceData.contenido || '';
+    document.getElementById('servicio-precio').value = serviceData.precio || '';
+    document.getElementById('servicio-duracion').value = serviceData.duracion || 60;
+    document.getElementById('servicio-capacidad').value = serviceData.capacidad || 1;
+    document.getElementById('servicio-sesiones').value = serviceData.sesiones || 1;
+
+    editingServiceId = serviceData.id;
+
+    // Scroll to form
+    document.getElementById('form-crear-servicio').scrollIntoView({ behavior: 'smooth' });
+}
+
+function resetForm() {
+    const form = document.getElementById('form-crear-servicio');
+    if (form) form.reset();
+    document.getElementById('servicio-form-title').textContent = 'Crear Nuevo Servicio';
+    document.getElementById('btn-submit-servicio').textContent = 'Guardar Servicio';
+    document.getElementById('btn-cancelar-edicion').style.display = 'none';
+    editingServiceId = null;
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     const appNegocio = document.getElementById('app-negocio');
@@ -66,7 +96,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Logica Formulario Servicio
-    const formServicio = document.getElementById('form-crear-servicio');
+        const formServicio = document.getElementById('form-crear-servicio');
+
+    const btnCancelarEdicion = document.getElementById('btn-cancelar-edicion');
+    if (btnCancelarEdicion) {
+        btnCancelarEdicion.addEventListener('click', resetForm);
+    }
+
     if (formServicio) {
         formServicio.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -100,9 +136,13 @@ document.addEventListener('DOMContentLoaded', () => {
         submitBtn.textContent = 'Guardando...';
         submitBtn.disabled = true;
 
+        const isEditing = editingServiceId !== null;
+        const url = isEditing ? `${baseApiUrl}servicio/${editingServiceId}` : `${baseApiUrl}servicio`;
+        const method = isEditing ? 'PUT' : 'POST';
+
         try {
-            const response = await fetch(`${baseApiUrl}servicio`, {
-                method: 'POST',
+            const response = await fetch(url, {
+                method: method,
                 credentials: 'same-origin',
                 headers: {
                     'Content-Type': 'application/json',
@@ -121,10 +161,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await response.json();
 
                 // Mostrar confirmacion
-                alert(data.message || 'Servicio creado exitosamente');
+                alert(data.message || (isEditing ? 'Servicio actualizado' : 'Servicio creado exitosamente'));
 
                 // Limpiar form
-                formServicio.reset();
+                resetForm();
+
+                // Refrescar lista si existe la funcion
+                if (typeof fetchAndRenderServicios === 'function') {
+                    fetchAndRenderServicios();
+                }
+
             } else {
                 const err = await response.json();
                 alert(`Error: ${err.message || 'No se pudo crear el servicio'}`);

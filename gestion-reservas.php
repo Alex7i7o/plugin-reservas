@@ -175,6 +175,30 @@ function encolar_scripts_reservas() {
     );
 
     wp_enqueue_script(
+        'app-negocio-services-list',
+        plugins_url('/js/app-negocio/services-list.js', __FILE__),
+        array('reserva-main', 'app-negocio-form'),
+        '1.0',
+        true
+    );
+
+    wp_enqueue_script(
+        'app-negocio-appointments',
+        plugins_url('/js/app-negocio/appointments-table.js', __FILE__),
+        array('reserva-main'),
+        '1.0',
+        true
+    );
+
+    wp_enqueue_script(
+        'app-negocio-manual-booking',
+        plugins_url('/js/app-negocio/manual-booking.js', __FILE__),
+        array('reserva-main', 'app-negocio-appointments'),
+        '1.0',
+        true
+    );
+
+    wp_enqueue_script(
     'reserva-main', 
     plugins_url('/js/main.js', __FILE__), 
     array(), // Sin dependencias de PHP, las dependencias son los 'import' en JS
@@ -230,7 +254,7 @@ add_action('wp_enqueue_scripts', 'encolar_scripts_reservas');
 
 // Este filtro ahora sí va a encontrar 'reserva-auth', 'reserva-main' y 'app-cliente-main'
 add_filter('script_loader_tag', function($tag, $handle, $src) {
-    if (in_array($handle, array('reserva-main', 'app-cliente-main', 'app-negocio-form'))) {
+    if (in_array($handle, array('reserva-main', 'app-cliente-main', 'app-negocio-form', 'app-negocio-services-list', 'app-negocio-appointments', 'app-negocio-manual-booking'))) {
         $tag = preg_replace('/type=(["\']).*?\1\s*/', '', $tag);
         $tag = str_replace('<script ', '<script type="module" ', $tag);
     }
@@ -320,6 +344,72 @@ add_action('rest_api_init', function () {
         'methods' => 'POST',
         'callback' => 'guardar_reserva_callback',
         'permission_callback' => $verificar_auth,
+    ));
+
+        register_rest_route('violett/v1', '/servicios/todos', array(
+        'methods' => 'GET',
+        'callback' => 'obtener_servicios_callback',
+        'permission_callback' => function() {
+            if (!is_user_logged_in()) {
+                return new WP_Error('rest_not_logged_in', 'Debes iniciar sesión.', array('status' => 401));
+            }
+            return current_user_can('manage_options') || current_user_can('editor');
+        }
+    ));
+
+    register_rest_route('violett/v1', '/servicio/(?P<id>\d+)', array(
+        'methods' => 'DELETE',
+        'callback' => 'borrar_servicio_callback',
+        'permission_callback' => function() {
+            if (!is_user_logged_in()) {
+                return new WP_Error('rest_not_logged_in', 'Debes iniciar sesión.', array('status' => 401));
+            }
+            return current_user_can('manage_options') || current_user_can('editor');
+        }
+    ));
+
+    register_rest_route('violett/v1', '/servicio/(?P<id>\d+)', array(
+        'methods' => 'PUT',
+        'callback' => 'actualizar_servicio_callback',
+        'permission_callback' => function() {
+            if (!is_user_logged_in()) {
+                return new WP_Error('rest_not_logged_in', 'Debes iniciar sesión.', array('status' => 401));
+            }
+            return current_user_can('manage_options') || current_user_can('editor');
+        }
+    ));
+
+    register_rest_route('violett/v1', '/turnos/todos', array(
+        'methods' => 'GET',
+        'callback' => 'obtener_turnos_callback',
+        'permission_callback' => function() {
+            if (!is_user_logged_in()) {
+                return new WP_Error('rest_not_logged_in', 'Debes iniciar sesión.', array('status' => 401));
+            }
+            return current_user_can('manage_options') || current_user_can('editor');
+        }
+    ));
+
+    register_rest_route('violett/v1', '/turno/(?P<id>\d+)', array(
+        'methods' => 'DELETE',
+        'callback' => 'borrar_turno_callback',
+        'permission_callback' => function() {
+            if (!is_user_logged_in()) {
+                return new WP_Error('rest_not_logged_in', 'Debes iniciar sesión.', array('status' => 401));
+            }
+            return current_user_can('manage_options') || current_user_can('editor');
+        }
+    ));
+
+    register_rest_route('violett/v1', '/turno-manual', array(
+        'methods' => 'POST',
+        'callback' => 'crear_turno_manual_callback',
+        'permission_callback' => function() {
+            if (!is_user_logged_in()) {
+                return new WP_Error('rest_not_logged_in', 'Debes iniciar sesión.', array('status' => 401));
+            }
+            return current_user_can('manage_options') || current_user_can('editor');
+        }
     ));
 
     register_rest_route('wp/v2', '/disponibilidad', array(
@@ -857,3 +947,153 @@ function violett_login_callback($request) {
 require_once plugin_dir_path(__FILE__) . 'app-cliente/app-cliente.php';
 require_once plugin_dir_path(__FILE__) . 'app-negocio/app-negocio.php';
 require_once plugin_dir_path(__FILE__) . 'app-reservas/app-reservas.php';
+
+
+function obtener_servicios_callback($request) {
+    $args = array(
+        'post_type'      => 'servicio',
+        'posts_per_page' => -1,
+        'post_status'    => 'publish'
+    );
+    $posts = get_posts($args);
+    $servicios = array();
+    foreach ($posts as $post) {
+        $fields = function_exists('get_fields') ? get_fields($post->ID) : array();
+        $servicios[] = array(
+            'id' => $post->ID,
+            'titulo' => $post->post_title,
+            'contenido' => $post->post_content,
+            'precio' => isset($fields['precio']) ? $fields['precio'] : get_post_meta($post->ID, 'precio', true),
+            'duracion' => isset($fields['duracion']) ? $fields['duracion'] : get_post_meta($post->ID, 'duracion', true),
+            'capacidad' => isset($fields['capacidad']) ? $fields['capacidad'] : get_post_meta($post->ID, 'capacidad', true),
+            'sesiones' => isset($fields['sesiones']) ? $fields['sesiones'] : get_post_meta($post->ID, 'sesiones', true)
+        );
+    }
+    return new WP_REST_Response($servicios, 200);
+}
+
+function borrar_servicio_callback($request) {
+    $id = $request->get_param('id');
+    if (!$id) {
+        return new WP_Error('no_id', 'ID de servicio no proporcionado.', array('status' => 400));
+    }
+    $result = wp_delete_post($id, true);
+    if ($result) {
+        return new WP_REST_Response(array('message' => 'Servicio borrado exitosamente.'), 200);
+    } else {
+        return new WP_Error('delete_failed', 'No se pudo borrar el servicio.', array('status' => 500));
+    }
+}
+
+function actualizar_servicio_callback($request) {
+    $id = $request->get_param('id');
+    $parametros = $request->get_json_params();
+
+    if (!$id) {
+        return new WP_Error('no_id', 'ID de servicio no proporcionado.', array('status' => 400));
+    }
+
+    $post = get_post($id);
+    if (!$post || $post->post_type !== 'servicio') {
+        return new WP_Error('no_servicio', 'Servicio no encontrado.', array('status' => 404));
+    }
+
+    $titulo    = isset($parametros['titulo']) ? sanitize_text_field($parametros['titulo']) : $post->post_title;
+    $contenido = isset($parametros['contenido']) ? wp_kses_post($parametros['contenido']) : $post->post_content;
+
+    wp_update_post(array(
+        'ID'           => $id,
+        'post_title'   => $titulo,
+        'post_content' => $contenido
+    ));
+
+    if (isset($parametros['precio'])) update_field('precio', intval($parametros['precio']), $id);
+    if (isset($parametros['duracion'])) update_field('duracion', intval($parametros['duracion']), $id);
+    if (isset($parametros['capacidad'])) update_field('capacidad', intval($parametros['capacidad']), $id);
+    if (isset($parametros['sesiones'])) update_field('sesiones', intval($parametros['sesiones']), $id);
+
+    return new WP_REST_Response(array('message' => 'Servicio actualizado exitosamente.'), 200);
+}
+
+function obtener_turnos_callback($request) {
+    $args = array(
+        'post_type'      => 'reserva',
+        'posts_per_page' => -1,
+        'post_status'    => 'publish' // We will assume turnos manuales are publish or we should query any status
+    );
+    $posts = get_posts($args);
+    $turnos = array();
+    foreach ($posts as $post) {
+        $fields = function_exists('get_fields') ? get_fields($post->ID) : array();
+        $turnos[] = array(
+            'id' => $post->ID,
+            'cliente' => isset($fields['cliente']) ? $fields['cliente'] : get_post_meta($post->ID, 'cliente', true),
+            'email' => isset($fields['email_cliente']) ? $fields['email_cliente'] : get_post_meta($post->ID, 'email_cliente', true),
+            'fecha' => isset($fields['fecha']) ? $fields['fecha'] : get_post_meta($post->ID, 'fecha', true),
+            'hora' => isset($fields['hora']) ? $fields['hora'] : get_post_meta($post->ID, 'hora', true),
+            'hora_fin' => isset($fields['hora_fin']) ? $fields['hora_fin'] : get_post_meta($post->ID, 'hora_fin', true),
+            'servicio' => isset($fields['servicio']) ? $fields['servicio'] : get_post_meta($post->ID, 'servicio', true)
+        );
+    }
+    return new WP_REST_Response($turnos, 200);
+}
+
+function borrar_turno_callback($request) {
+    $id = $request->get_param('id');
+    if (!$id) {
+        return new WP_Error('no_id', 'ID de turno no proporcionado.', array('status' => 400));
+    }
+    $result = wp_delete_post($id, true);
+    if ($result) {
+        return new WP_REST_Response(array('message' => 'Turno cancelado exitosamente.'), 200);
+    } else {
+        return new WP_Error('delete_failed', 'No se pudo cancelar el turno.', array('status' => 500));
+    }
+}
+
+function crear_turno_manual_callback($request) {
+    $parametros = $request->get_json_params();
+
+    $cliente = isset($parametros['cliente']) ? sanitize_text_field($parametros['cliente']) : '';
+    $email = isset($parametros['email']) ? sanitize_email($parametros['email']) : '';
+    $fecha = isset($parametros['fecha']) ? sanitize_text_field($parametros['fecha']) : '';
+    $hora = isset($parametros['hora']) ? sanitize_text_field($parametros['hora']) : '';
+    $hora_fin = isset($parametros['hora_fin']) ? sanitize_text_field($parametros['hora_fin']) : '';
+    $servicio = isset($parametros['servicio']) ? sanitize_text_field($parametros['servicio']) : '';
+
+    if (empty($cliente) || empty($fecha) || empty($hora) || empty($servicio)) {
+        return new WP_Error('missing_data', 'Faltan datos requeridos.', array('status' => 400));
+    }
+
+    $post_id = wp_insert_post(array(
+        'post_title'   => 'Reserva: ' . $email . ' - ' . $hora,
+        'post_type'    => 'reserva',
+        'post_status'  => 'publish',
+    ));
+
+    if ($post_id) {
+        update_field('cliente', $cliente, $post_id);
+        update_field('email_cliente', $email, $post_id);
+        update_field('fecha', $fecha, $post_id);
+        update_field('hora', $hora, $post_id);
+        update_field('hora_fin', $hora_fin, $post_id);
+        update_field('servicio', $servicio, $post_id);
+
+        $reserva_data = array(
+            'cliente' => $cliente,
+            'inicio' => $fecha . 'T' . $hora . ':00-03:00',
+            'fin' => $fecha . 'T' . ($hora_fin ?: $hora) . ':00-03:00',
+            'servicio' => $servicio
+        );
+        try {
+            if (function_exists('insertar_en_calendario_negocio')) {
+                insertar_en_calendario_negocio($reserva_data);
+            }
+            return new WP_REST_Response(array('message' => 'Turno manual cargado correctamente y agendado en Google Calendar.'), 200);
+        } catch (Exception $e) {
+            return new WP_REST_Response(array('message' => 'Turno guardado en WP, pero falló al agendar en Google: ' . esc_html($e->getMessage())), 207); // 207 Multi-Status
+        }
+    } else {
+        return new WP_Error('insert_failed', 'Error al crear el turno en WordPress.', array('status' => 500));
+    }
+}
