@@ -1,6 +1,11 @@
+import { initAppLayout } from './AppLayout.js';
+
 document.addEventListener('DOMContentLoaded', () => {
     const appNegocio = document.getElementById('app-negocio');
     if (!appNegocio) return;
+
+    // Inicializar Layout
+    initAppLayout();
 
     const baseApiUrl = appConfig.violettApiUrl || appConfig.apiUrl.replace('wp/v2/', 'violett/v1/');
 
