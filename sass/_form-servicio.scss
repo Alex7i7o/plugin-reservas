@@ -1,0 +1,95 @@
+// form-servicio.scss
+
+.form-crear-servicio {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9375rem;
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3125rem;
+
+        label {
+            font-weight: bold;
+            font-family: 'Raleway', sans-serif;
+            color: $violeta;
+        }
+
+        .input-pro {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid $violeta;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-family: 'Raleway', sans-serif;
+            min-height: 2.75rem; /* Min height for tap targets */
+
+            &:focus {
+                border-color: $naranja;
+                outline: none;
+            }
+        }
+
+        textarea.input-pro {
+            resize: vertical;
+            min-height: 5rem;
+        }
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0.9375rem;
+
+        @media (min-width: 768px) {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+
+    .form-actions {
+        margin-top: 1rem;
+
+        .btn-crear-servicio {
+            width: 100%;
+            border-radius: 1.25rem;
+            padding: 0.9375rem 2.5rem;
+            font-size: 0.875rem;
+            white-space: nowrap;
+            font-family: 'Raleway', sans-serif;
+            text-transform: uppercase;
+            font-weight: bold;
+            min-height: 2.75rem; /* Min height for tap targets */
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(-45deg, $violeta 0%, $violeta-claro 20%, #7a60a0 50%, $violeta 100%);
+            background-size: 400% 400%;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 5px rgba(75, 54, 105, 0.3);
+            color: $white;
+            border: none;
+            cursor: pointer;
+
+            &:hover:not(:disabled) {
+                background-color: $naranja;
+                background-image: none;
+                color: $white;
+                border: 1px solid $naranja-hover;
+                transform: translateY(-2px);
+                box-shadow: 0 4px 10px rgba(255, 140, 0, 0.4);
+            }
+
+            &:disabled {
+                opacity: 0.7;
+                cursor: not-allowed;
+            }
+        }
+
+        @media (min-width: 768px) {
+            .btn-crear-servicio {
+                width: auto;
+            }
+        }
+    }
+}
