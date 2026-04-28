@@ -120,5 +120,48 @@ usort($reservas_hoy, function($a, $b) {
                 </div>
             </form>
         </div>
+
+        <div class="panel-card">
+            <h2>Crear Nuevo Servicio</h2>
+            <form id="form-crear-servicio" class="form-crear-servicio">
+                <div class="form-group">
+                    <label for="servicio-titulo">Nombre del Servicio</label>
+                    <input type="text" id="servicio-titulo" class="input-pro" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="servicio-contenido">Descripción</label>
+                    <textarea id="servicio-contenido" class="input-pro" rows="3"></textarea>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="servicio-precio">Precio ($)</label>
+                        <input type="number" id="servicio-precio" class="input-pro" required min="0" step="100">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="servicio-duracion">Duración (Minutos)</label>
+                        <input type="number" id="servicio-duracion" class="input-pro" required min="15" step="15" value="60">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="servicio-capacidad">Capacidad</label>
+                        <input type="number" id="servicio-capacidad" class="input-pro" required min="1" value="1">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="servicio-sesiones">Sesiones Totales</label>
+                        <input type="number" id="servicio-sesiones" class="input-pro" required min="1" value="1">
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" id="btn-submit-servicio" class="btn-crear-servicio">Guardar Servicio</button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>

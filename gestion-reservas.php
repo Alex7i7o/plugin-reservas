@@ -167,6 +167,14 @@ function encolar_scripts_reservas() {
     );
 
     wp_enqueue_script(
+        'app-negocio-form',
+        plugins_url('/js/app-negocio/form-servicio.js', __FILE__),
+        array('reserva-main'),
+        '1.0',
+        true
+    );
+
+    wp_enqueue_script(
     'reserva-main', 
     plugins_url('/js/main.js', __FILE__), 
     array(), // Sin dependencias de PHP, las dependencias son los 'import' en JS
@@ -211,6 +219,7 @@ function encolar_scripts_reservas() {
 
     wp_localize_script('reserva-main', 'appConfig', array(
         'apiUrl' => rest_url('wp/v2/'),
+        'violettApiUrl' => rest_url('violett/v1/'),
         'googleClientId' => $client_id,
         'calendarId' => $calendar_id,
         'nonce'  => wp_create_nonce('wp_rest'),
@@ -221,7 +230,7 @@ add_action('wp_enqueue_scripts', 'encolar_scripts_reservas');
 
 // Este filtro ahora sí va a encontrar 'reserva-auth', 'reserva-main' y 'app-cliente-main'
 add_filter('script_loader_tag', function($tag, $handle, $src) {
-    if (in_array($handle, array('reserva-main', 'app-cliente-main'))) {
+    if (in_array($handle, array('reserva-main', 'app-cliente-main', 'app-negocio-form'))) {
         $tag = preg_replace('/type=(["\']).*?\1\s*/', '', $tag);
         $tag = str_replace('<script ', '<script type="module" ', $tag);
     }
@@ -277,6 +286,15 @@ add_action('rest_api_init', function () {
         'methods' => 'POST',
         'callback' => 'auth_google_callback',
         'permission_callback' => $verificar_nonce,
+    ));
+
+    // Nuevo endpoint para crear servicios desde app-negocio
+    register_rest_route('violett/v1', '/servicio', array(
+        'methods' => 'POST',
+        'callback' => 'crear_servicio_callback',
+        'permission_callback' => function() {
+            return current_user_can('manage_options');
+        }
     ));
 
     register_rest_route('wp/v2', '/reserva', array( // Cambiamos a wp/v2 para coincidir con tu JS
@@ -667,6 +685,44 @@ function guardar_reserva_callback($request) {
 }
 
 
+
+// Endpoint para crear servicios desde app-negocio
+function crear_servicio_callback($request) {
+    $parametros = $request->get_json_params();
+
+    $titulo    = isset($parametros['titulo']) ? sanitize_text_field($parametros['titulo']) : '';
+    $contenido = isset($parametros['contenido']) ? wp_kses_post($parametros['contenido']) : '';
+    $precio    = isset($parametros['precio']) ? intval($parametros['precio']) : 0;
+    $duracion  = isset($parametros['duracion']) ? intval($parametros['duracion']) : 60;
+    $capacidad = isset($parametros['capacidad']) ? intval($parametros['capacidad']) : 1;
+    $sesiones  = isset($parametros['sesiones']) ? intval($parametros['sesiones']) : 1;
+
+    if (empty($titulo)) {
+        return new WP_Error('falta_titulo', 'El título del servicio es requerido.', array('status' => 400));
+    }
+
+    $post_id = wp_insert_post(array(
+        'post_title'   => $titulo,
+        'post_content' => $contenido,
+        'post_type'    => 'servicio',
+        'post_status'  => 'publish'
+    ));
+
+    if (is_wp_error($post_id)) {
+        return new WP_Error('error_guardado', 'No se pudo crear el servicio.', array('status' => 500));
+    }
+
+    // Guardar en ACF
+    update_field('precio', $precio, $post_id);
+    update_field('duracion', $duracion, $post_id);
+    update_field('capacidad', $capacidad, $post_id);
+    update_field('sesiones', $sesiones, $post_id);
+
+    return new WP_REST_Response(array(
+        'message' => 'Servicio creado exitosamente',
+        'id'      => $post_id
+    ), 200);
+}
 
 // Función para autenticar/crear usuario
 function auth_google_callback($request) {
