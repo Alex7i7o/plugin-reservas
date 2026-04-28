@@ -4,16 +4,15 @@
 if (!defined('ABSPATH')) exit;
 
 function mostrar_app_negocio() {
-    // Seguridad: Asegurar que solo administradores o personal autorizado puedan ver esto
-    if (!current_user_can('manage_options')) {
-        return '<div class="notice notice-error"><p>No tienes permisos para acceder a esta página.</p></div>';
-    }
-
     $archivo_path = plugin_dir_path(__FILE__) . 'template.php';
 
+    // Verificamos autorización
+    $is_authorized = is_user_logged_in() && (current_user_can('manage_options') || current_user_can('editor'));
+
     // Manejar form submission para Carga Manual si estamos en el front-end y se envió el form
+    // Solamente lo procesamos si está autorizado
     $mensaje = '';
-    if (isset($_POST['sr_turno_manual_nonce']) && wp_verify_nonce($_POST['sr_turno_manual_nonce'], 'sr_turno_manual_action')) {
+    if ($is_authorized && isset($_POST['sr_turno_manual_nonce']) && wp_verify_nonce($_POST['sr_turno_manual_nonce'], 'sr_turno_manual_action')) {
         $cliente = sanitize_text_field($_POST['cliente']);
         $email = sanitize_email($_POST['email']);
         $fecha = sanitize_text_field($_POST['fecha']);

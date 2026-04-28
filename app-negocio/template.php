@@ -46,7 +46,33 @@ usort($reservas_hoy, function($a, $b) {
 ?>
 <div id="app-negocio" class="wrap app-container">
     <?php if (!empty($mensaje)) echo $mensaje; ?>
-    <h1>Panel del Día - <?php echo esc_html($hoy); ?></h1>
+
+    <!-- Sección de Login (Mostrada solo si NO hay sesión) -->
+    <div id="login-negocio-section" style="<?php echo $is_authorized ? 'display: none;' : ''; ?>">
+        <div class="login-card" style="max-width: 400px; margin: 2rem auto; padding: 2rem; background: #fff; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <h2 style="text-align: center; margin-bottom: 1.5rem;">Acceso al Panel</h2>
+            <form id="form-login-negocio">
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label for="login-username" style="display: block; margin-bottom: 0.5rem; font-weight: bold;">Usuario o Email</label>
+                    <input type="text" id="login-username" class="input-pro" required style="width: 100%; padding: 0.75rem; border: 1px solid #ccc; border-radius: 4px;">
+                </div>
+                <div class="form-group" style="margin-bottom: 1.5rem;">
+                    <label for="login-password" style="display: block; margin-bottom: 0.5rem; font-weight: bold;">Contraseña</label>
+                    <input type="password" id="login-password" class="input-pro" required style="width: 100%; padding: 0.75rem; border: 1px solid #ccc; border-radius: 4px;">
+                </div>
+                <button type="submit" id="btn-login-negocio" class="button button-primary btn-reserva" style="width: 100%; padding: 0.75rem; font-size: 1rem; border: none; border-radius: 4px; background: #007cba; color: white; cursor: pointer;">Ingresar</button>
+                <div id="login-error-msg" style="color: red; margin-top: 1rem; text-align: center; display: none;"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Sección del Dashboard (Mostrada solo si SÍ hay sesión y autorización) -->
+    <?php if ($is_authorized): ?>
+    <div id="dashboard-negocio-section">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h1>Panel del Día - <?php echo esc_html($hoy); ?></h1>
+            <button id="btn-logout-negocio" class="button" style="padding: 0.5rem 1rem; background: #dc3232; color: white; border: none; border-radius: 4px; cursor: pointer;">Cerrar sesión</button>
+        </div>
 
     <div class="panel-layout">
         <div class="panel-card">
@@ -164,4 +190,6 @@ usort($reservas_hoy, function($a, $b) {
             </form>
         </div>
     </div>
+    </div>
+    <?php endif; ?>
 </div>
