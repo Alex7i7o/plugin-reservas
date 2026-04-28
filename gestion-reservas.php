@@ -288,12 +288,31 @@ add_action('rest_api_init', function () {
         'permission_callback' => $verificar_nonce,
     ));
 
+    // Endpoints de autenticación nativa para app-negocio
+    register_rest_route('violett/v1', '/login', array(
+        'methods' => 'POST',
+        'callback' => 'violett_login_callback',
+        'permission_callback' => '__return_true'
+    ));
+
+    register_rest_route('violett/v1', '/logout', array(
+        'methods' => 'POST',
+        'callback' => function() {
+            wp_logout();
+            return new WP_REST_Response(array('message' => 'Sesión cerrada'), 200);
+        },
+        'permission_callback' => '__return_true'
+    ));
+
     // Nuevo endpoint para crear servicios desde app-negocio
     register_rest_route('violett/v1', '/servicio', array(
         'methods' => 'POST',
         'callback' => 'crear_servicio_callback',
         'permission_callback' => function() {
-            return current_user_can('manage_options');
+            if (!is_user_logged_in()) {
+                return new WP_Error('rest_not_logged_in', 'Debes iniciar sesión.', array('status' => 401));
+            }
+            return current_user_can('manage_options') || current_user_can('editor');
         }
     ));
 
@@ -796,6 +815,41 @@ function auth_google_callback($request) {
         'nombre' => $user->first_name,
         'creditos' => $creditos,
         'nonce' => $nonce
+    ), 200);
+}
+
+// Endpoint nativo de login
+function violett_login_callback($request) {
+    $parametros = $request->get_json_params();
+    $username = isset($parametros['username']) ? sanitize_text_field($parametros['username']) : '';
+    $password = isset($parametros['password']) ? sanitize_text_field($parametros['password']) : '';
+
+    if (empty($username) || empty($password)) {
+        return new WP_Error('falta_credenciales', 'Usuario y contraseña son requeridos.', array('status' => 400));
+    }
+
+    $creds = array(
+        'user_login'    => $username,
+        'user_password' => $password,
+        'remember'      => true
+    );
+
+    $user = wp_signon($creds, false);
+
+    if (is_wp_error($user)) {
+        return new WP_Error('credenciales_invalidas', 'Usuario o contraseña incorrectos.', array('status' => 401));
+    }
+
+    // Verificar rol
+    if (!in_array('administrator', (array)$user->roles) && !in_array('editor', (array)$user->roles) && !current_user_can('manage_options')) {
+        wp_logout();
+        return new WP_Error('sin_permisos', 'No tienes permisos para acceder a este panel.', array('status' => 403));
+    }
+
+    return new WP_REST_Response(array(
+        'message' => 'Login exitoso',
+        'user_id' => $user->ID,
+        'roles' => $user->roles
     ), 200);
 }
 

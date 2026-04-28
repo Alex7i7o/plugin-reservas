@@ -1,8 +1,69 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const formServicio = document.getElementById('form-crear-servicio');
-    if (!formServicio) return;
+    const appNegocio = document.getElementById('app-negocio');
+    if (!appNegocio) return;
 
-    formServicio.addEventListener('submit', async (e) => {
+    const baseApiUrl = appConfig.violettApiUrl || appConfig.apiUrl.replace('wp/v2/', 'violett/v1/');
+
+    // Logica de Login
+    const formLogin = document.getElementById('form-login-negocio');
+    if (formLogin) {
+        formLogin.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('btn-login-negocio');
+            const errorMsg = document.getElementById('login-error-msg');
+            btn.disabled = true;
+            btn.textContent = 'Verificando...';
+            errorMsg.style.display = 'none';
+
+            try {
+                const response = await fetch(`${baseApiUrl}login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: document.getElementById('login-username').value,
+                        password: document.getElementById('login-password').value
+                    })
+                });
+
+                if (response.ok) {
+                    window.location.reload(); // Recarga para que PHP muestre el dashboard y pase un nonce nuevo
+                } else {
+                    const data = await response.json();
+                    errorMsg.textContent = data.message || 'Error de autenticación.';
+                    errorMsg.style.display = 'block';
+                }
+            } catch (err) {
+                console.error('Error de red:', err);
+                errorMsg.textContent = 'Error de red. Intente nuevamente.';
+                errorMsg.style.display = 'block';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Ingresar';
+            }
+        });
+    }
+
+    // Logica de Logout
+    const btnLogout = document.getElementById('btn-logout-negocio');
+    if (btnLogout) {
+        btnLogout.addEventListener('click', async () => {
+            btnLogout.disabled = true;
+            btnLogout.textContent = 'Cerrando sesión...';
+            try {
+                await fetch(`${baseApiUrl}logout`, { method: 'POST' });
+                window.location.reload();
+            } catch (err) {
+                console.error('Error cerrando sesión:', err);
+                btnLogout.disabled = false;
+                btnLogout.textContent = 'Cerrar sesión';
+            }
+        });
+    }
+
+    // Logica Formulario Servicio
+    const formServicio = document.getElementById('form-crear-servicio');
+    if (formServicio) {
+        formServicio.addEventListener('submit', async (e) => {
         e.preventDefault();
 
         // Obtener valores del form
@@ -35,9 +96,6 @@ document.addEventListener('DOMContentLoaded', () => {
         submitBtn.disabled = true;
 
         try {
-            // Usa el namespace localizado 'violett/v1'
-            const baseApiUrl = appConfig.violettApiUrl || appConfig.apiUrl.replace('wp/v2/', 'violett/v1/');
-
             const response = await fetch(`${baseApiUrl}servicio`, {
                 method: 'POST',
                 credentials: 'same-origin',
@@ -47,6 +105,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
                 body: JSON.stringify(payload)
             });
+
+            if (response.status === 401 || response.status === 403) {
+                alert('La sesión expiró o no tienes permisos. Volvé a iniciar sesión.');
+                window.location.reload();
+                return;
+            }
 
             if (response.ok) {
                 const data = await response.json();
@@ -67,5 +131,6 @@ document.addEventListener('DOMContentLoaded', () => {
             submitBtn.textContent = originalText;
             submitBtn.disabled = false;
         }
-    });
+        });
+    }
 });
