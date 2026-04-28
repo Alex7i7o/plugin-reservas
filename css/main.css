@@ -340,6 +340,101 @@
   }
 }
 
+.app-dashboard {
+  display: flex;
+  flex-direction: column;
+}
+.app-dashboard .app-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: #ffffff;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+}
+.app-dashboard .app-nav ul {
+  display: flex;
+  justify-content: space-around;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.app-dashboard .app-nav ul li {
+  flex: 1;
+}
+.app-dashboard .app-nav ul li button {
+  width: 100%;
+  padding: 1rem 0.5rem;
+  background: none;
+  border: none;
+  font-weight: bold;
+  font-family: "Raleway", sans-serif;
+  color: #555;
+  min-height: 44px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.app-dashboard .app-nav ul li button.active {
+  color: #4b3669;
+  border-top: 3px solid #4b3669;
+  background: rgba(75, 54, 105, 0.05);
+}
+.app-dashboard .app-nav ul li button.btn-logout {
+  color: #dc3232;
+}
+.app-dashboard .app-nav ul li button.btn-logout:hover {
+  background: rgba(220, 50, 50, 0.1);
+}
+.app-dashboard .app-main-view {
+  padding-bottom: 80px;
+  flex: 1;
+}
+.app-dashboard .app-main-view .app-section {
+  display: none;
+}
+.app-dashboard .app-main-view .app-section.active {
+  display: block;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@media (min-width: 768px) {
+  .app-dashboard {
+    flex-direction: row;
+    min-height: 80vh;
+  }
+  .app-dashboard .app-nav {
+    position: static;
+    width: 250px;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    margin-right: 2rem;
+    height: fit-content;
+  }
+  .app-dashboard .app-nav ul {
+    flex-direction: column;
+  }
+  .app-dashboard .app-nav ul li button {
+    text-align: left;
+    padding: 1.5rem 1.5rem;
+    border-top: none;
+  }
+  .app-dashboard .app-nav ul li button.active {
+    border-top: none;
+    border-left: 4px solid #4b3669;
+  }
+  .app-dashboard .app-main-view {
+    padding-bottom: 0;
+  }
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
 body {
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
 }

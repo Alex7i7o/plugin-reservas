@@ -1,0 +1,111 @@
+// Layout styles
+
+// Mobile First layout for app-negocio
+.app-dashboard {
+  display: flex;
+  flex-direction: column;
+
+  .app-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: $white;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+
+    ul {
+      display: flex;
+      justify-content: space-around;
+      list-style: none;
+      padding: 0;
+      margin: 0;
+
+      li {
+        flex: 1;
+
+        button {
+          width: 100%;
+          padding: 1rem 0.5rem;
+          background: none;
+          border: none;
+          font-weight: bold;
+          font-family: 'Raleway', sans-serif;
+          color: #555;
+          min-height: 44px; // Tap target
+          cursor: pointer;
+          transition: all 0.2s ease;
+
+          &.active {
+            color: $violeta;
+            border-top: 3px solid $violeta;
+            background: rgba($violeta, 0.05);
+          }
+
+          &.btn-logout {
+            color: #dc3232;
+            &:hover {
+              background: rgba(#dc3232, 0.1);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  .app-main-view {
+    padding-bottom: 80px; // Make space for the bottom nav
+    flex: 1;
+
+    .app-section {
+      display: none;
+      &.active {
+        display: block;
+        animation: fadeIn 0.3s ease-in-out;
+      }
+    }
+  }
+}
+
+// Tablet & Desktop layout
+@media (min-width: 768px) {
+  .app-dashboard {
+    flex-direction: row;
+    min-height: 80vh;
+
+    .app-nav {
+      position: static;
+      width: 250px;
+      box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+      border-radius: 8px;
+      margin-right: 2rem;
+      height: fit-content;
+
+      ul {
+        flex-direction: column;
+
+        li {
+          button {
+            text-align: left;
+            padding: 1.5rem 1.5rem;
+            border-top: none;
+
+            &.active {
+              border-top: none;
+              border-left: 4px solid $violeta;
+            }
+          }
+        }
+      }
+    }
+
+    .app-main-view {
+      padding-bottom: 0;
+    }
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
