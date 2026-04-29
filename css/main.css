@@ -462,4 +462,66 @@ body {
   caret-color: #4b3669 !important; /* El cursor vuelve a ser violeta acá */
 }
 
+.panel-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+  font-size: 0.95rem;
+}
+.panel-table th, .panel-table td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+.panel-table th {
+  background-color: #f4f4f4;
+  font-weight: bold;
+  color: #333;
+}
+.panel-table tr:hover {
+  background-color: #f9f9f9;
+}
+
+.table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table-filters {
+  background-color: #f4f4f4;
+  padding: 10px;
+  border-radius: 5px;
+  align-items: center;
+}
+
+.input-pro {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+  font-family: inherit;
+  font-size: 1rem;
+}
+.input-pro:focus {
+  border-color: #007cba;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(0, 124, 186, 0.2);
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: bold;
+  color: #333;
+}
+
+.form-actions {
+  margin-top: 1.5rem;
+  text-align: right;
+}
+
 /*# sourceMappingURL=main.css.map */
