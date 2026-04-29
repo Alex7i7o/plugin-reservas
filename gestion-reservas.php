@@ -655,15 +655,18 @@ function consultar_disponibilidad_callback($request) {
             $busy_periods = $calendars[$calendarId]->getBusy();
             if (!empty($busy_periods)) {
                 $timezone = new \DateTimeZone('America/Argentina/Buenos_Aires');
+                $dt = new \DateTime();
+                $dt->setTimezone($timezone);
                 foreach ($busy_periods as $period) {
-                    $start = new \DateTime($period->getStart());
-                    $start->setTimezone($timezone);
-                    $end = new \DateTime($period->getEnd());
-                    $end->setTimezone($timezone);
+                    $dt->setTimestamp(strtotime($period->getStart()));
+                    $inicio = $dt->format('H:i');
+
+                    $dt->setTimestamp(strtotime($period->getEnd()));
+                    $fin = $dt->format('H:i');
 
                     $ocupados[] = array(
-                        'inicio' => $start->format('H:i'),
-                        'fin' => $end->format('H:i')
+                        'inicio' => $inicio,
+                        'fin' => $fin
                     );
                 }
             }
