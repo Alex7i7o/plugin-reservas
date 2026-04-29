@@ -84,7 +84,7 @@ function sr_renderizar_pagina_ajustes() {
                 <tr valign="top">
                     <th scope="row">Mercado Pago Access Token</th>
                     <td>
-                        <input type="text" name="sr_mp_access_token" value="<?php echo esc_attr(get_option('sr_mp_access_token')); ?>" class="regular-text" />
+                        <input type="password" name="sr_mp_access_token" value="<?php echo esc_attr(get_option('sr_mp_access_token')); ?>" class="regular-text" />
                         <p class="description">Access Token de Mercado Pago para procesar pagos de reservas</p>
                     </td>
                 </tr>
