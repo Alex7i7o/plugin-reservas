@@ -15,6 +15,17 @@ describe('calcularFin', () => {
 
     test('Midnight Wrap: should handle crossing midnight (current behavior)', () => {
         expect(calcularFin('23:30', 60)).toBe('24:30');
+        expect(calcularFin('23:59', 1)).toBe('24:00');
+    });
+
+    test('Large Duration: should handle durations longer than 24 hours', () => {
+        expect(calcularFin('00:00', 1440)).toBe('24:00');
+        expect(calcularFin('00:00', 1500)).toBe('25:00');
+    });
+
+    test('Negative Duration: should handle negative durations correctly', () => {
+        expect(calcularFin('10:00', -30)).toBe('09:30');
+        expect(calcularFin('00:30', -60)).toBe('-1:-30');
     });
 
     test('Zero Duration: should return the same time if duration is 0', () => {
