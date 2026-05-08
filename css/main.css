@@ -1,19 +1,62 @@
 @charset "UTF-8";
+/* ==========================================================================
+   VIOLETT DESIGN SYSTEM — CSS Custom Properties (Design Tokens)
+   Todos los valores visuales del plugin se definen aquí.
+   La sección "Diseño" del panel de negocio puede sobreescribirlos en runtime.
+   ========================================================================== */
 :root {
-  --primary-color: #ff6b00;
-  --border-radius: 0.5rem;
-  --logo-width: 12.5rem;
+  /* --- Colores de Marca --- */
+  --v-primary: #4b3669;
+  --v-primary-light: #624b85;
+  --v-primary-dark: #3a2a52;
+  --v-primary-rgb: 75, 54, 105;
+  --v-accent: #c8a35b;
+  --v-highlight: #ff8c00;
+  --v-highlight-hover: #e67e00;
+  --v-highlight-rgb: 255, 140, 0;
+
+  /* --- Colores Semánticos --- */
+  --v-success: #27ae60;
+  --v-danger: #dc3232;
+  --v-warning: #ff8c00;
+
+  /* --- Superficies --- */
+  --v-bg: #ffffff;
+  --v-bg-muted: #f9f9f9;
+  --v-bg-card: #ffffff;
+  --v-border: #eee;
+  --v-border-strong: #ccd0d4;
+
+  /* --- Texto --- */
+  --v-text: #333333;
+  --v-text-muted: #888888;
+  --v-text-on-primary: #ffffff;
+
+  /* --- Tipografía --- */
+  --v-font-primary: 'Raleway', sans-serif;
+  --v-font-secondary: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+
+  /* --- Bordes y Sombras --- */
+  --v-radius: 0.5rem;
+  --v-radius-lg: 1rem;
+  --v-radius-pill: 1.25rem;
+  --v-shadow: 0 2px 5px rgba(var(--v-primary-rgb), 0.3);
+  --v-shadow-lg: 0 8px 24px rgba(var(--v-primary-rgb), 0.25);
+
+  /* --- Tamaños --- */
+  --v-tap-target: 2.75rem;
+  --v-logo-width: 12.5rem;
 }
 
 /* Un poco de estilo rápido para que no se vea desordenado */
 .input-pro {
   width: 100%;
   padding: 0.75rem;
-  border: 2px solid #4b3669;
+  border: 2px solid var(--v-primary);
   border-radius: 0.5rem;
   font-size: 1rem;
   margin-bottom: 0.625rem;
-  font-family: "Raleway", sans-serif;
+  font-family: var(--v-font-primary);
   appearance: none;
   background-image: url('data:image/svg+xml;charset=US-ASCII,<svg%20xmlns%3D"http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg"%20width%3D"24"%20height%3D"24"%20viewBox%3D"0%200%2024%2024"><path%20fill%3D"%234b3669"%20d%3D"M7%2010l5%205%205-5z"%2F><%2Fsvg>'); /* Flecha violeta */
   background-repeat: no-repeat;
@@ -33,7 +76,7 @@
   padding: 0.9375rem 2.5rem;
   font-size: 0.875rem;
   white-space: nowrap;
-  font-family: "Raleway", sans-serif;
+  font-family: var(--v-font-primary);
   text-transform: uppercase;
   font-weight: bold;
   min-height: 2.75rem;
@@ -44,20 +87,21 @@
   background-size: 400% 400%;
   animation: gradientAnimation 10s ease infinite;
   transition: all 1s ease;
-  box-shadow: 0 2px 5px rgba(75, 54, 105, 0.3);
-  color: #ffffff;
+  box-shadow: var(--v-shadow);
+  color: var(--v-text-on-primary);
   border: none;
   cursor: pointer;
 }
 
-#reserva-app .btn-horario.selected {
-  background-color: #ff8c00;
-  background-image: none;
-  animation: none;
-  color: #ffffff;
-  border: 1px solid #e67e00;
-  transform: translateY(-5px);
-  box-shadow: 0 4px 15px rgba(255, 140, 0, 0.4);
+#reserva-app .btn-horario.selected,
+#app-cliente .btn-horario.selected {
+  background-color: var(--v-highlight) !important;
+  background-image: none !important;
+  animation: none !important;
+  color: var(--v-text-on-primary) !important;
+  border: 1px solid var(--v-highlight-hover) !important;
+  transform: translateY(-5px) !important;
+  box-shadow: 0 4px 15px rgba(var(--v-highlight-rgb), 0.4) !important;
 }
 
 .loading-horarios {
@@ -171,6 +215,52 @@
   color: #f9f9f9;
 }
 
+/* Reserva Flow Container Styling */
+#reserva-flow {
+  background: #ffffff;
+  border-radius: 1rem;
+  padding: 2rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  max-width: 800px;
+  margin: 0 auto;
+}
+@media (max-width: 600px) {
+  #reserva-flow {
+    padding: 1.25rem;
+  }
+}
+
+#confirmacion-section {
+  background: rgba(75, 54, 105, 0.03);
+  border: 1px solid rgba(75, 54, 105, 0.1);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  margin-top: 1.5rem;
+}
+#confirmacion-section h4 {
+  color: #4b3669;
+  font-family: "Raleway", sans-serif;
+  font-size: 1.1rem;
+  margin-top: 0;
+  margin-bottom: 1rem;
+  border-bottom: 2px solid rgba(200, 163, 91, 0.3);
+  padding-bottom: 0.5rem;
+  display: inline-block;
+}
+#confirmacion-section #resumen-texto {
+  font-size: 0.95rem;
+  color: #444;
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+  background: #ffffff;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+#confirmacion-section #resumen-texto strong {
+  color: #4b3669;
+}
+
 /* Flatpickr Styling */
 .flatpickr-calendar {
   font-family: "Raleway", sans-serif !important;
@@ -268,8 +358,8 @@
 }
 .form-crear-servicio .form-group label {
   font-weight: bold;
-  font-family: "Raleway", sans-serif;
-  color: #4b3669;
+  font-family: var(--v-font-primary);
+  color: var(--v-primary);
 }
 .form-crear-servicio .form-group .input-pro {
   width: 100%;
@@ -376,12 +466,12 @@
   transition: all 0.2s ease;
 }
 .app-dashboard .app-nav ul li button.active {
-  color: #4b3669;
-  border-top: 3px solid #4b3669;
-  background: rgba(75, 54, 105, 0.05);
+  color: var(--v-primary);
+  border-top: 3px solid var(--v-primary);
+  background: rgba(var(--v-primary-rgb), 0.05);
 }
 .app-dashboard .app-nav ul li button.btn-logout {
-  color: #dc3232;
+  color: var(--v-danger);
 }
 .app-dashboard .app-nav ul li button.btn-logout:hover {
   background: rgba(220, 50, 50, 0.1);
@@ -421,7 +511,7 @@
   }
   .app-dashboard .app-nav ul li button.active {
     border-top: none;
-    border-left: 4px solid #4b3669;
+    border-left: 4px solid var(--v-primary);
   }
   .app-dashboard .app-main-view {
     padding-bottom: 0;
@@ -436,30 +526,46 @@
   }
 }
 body {
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  font-family: var(--v-font-secondary);
 }
 
-/* Quitamos el cursor de texto de los títulos del paso */
-#reserva-app select {
+/* --- MEJORA DE CURSORES Y SELECCIÓN --- */
+/* Evitamos que aparezca el cursor de texto (la barrita I) en toda la app */
+#reserva-app, 
+#reserva-app div, 
+#reserva-app span, 
+#reserva-app h1, 
+#reserva-app h2, 
+#reserva-app h3, 
+#reserva-app h4, 
+#reserva-app p, 
+#reserva-app img,
+#reserva-app section {
+  cursor: default;
+  user-select: none; /* Evita que el texto se sombree al hacer clic rápido */
+  caret-color: transparent !important;
+  outline: none !important;
+}
+
+/* Permitimos el puntero en botones y elementos interactivos */
+#reserva-app button,
+#reserva-app a,
+#reserva-app .btn-horario,
+#reserva-app .paquete-card,
+#reserva-app select,
+#reserva-app .ts-control {
   cursor: pointer !important;
 }
 
-#reserva-app select,
-#reserva-app h1,
-#reserva-app h2,
-#reserva-app h3,
-#reserva-app div,
-#reserva-app span * {
-  caret-color: transparent !important; /* Hace la barrita invisible */
-  outline: none !important; /* Quita el borde de enfoque */
-}
-
-/* Solo lo habilitamos para los inputs donde SÍ hay que escribir */
+/* Solo habilitamos el cursor de texto y la selección en inputs reales */
 #reserva-app input[type=text],
 #reserva-app input[type=email],
 #reserva-app input[type=tel],
+#reserva-app input[type=number],
 #reserva-app textarea {
-  caret-color: #4b3669 !important; /* El cursor vuelve a ser violeta acá */
+  cursor: text !important;
+  user-select: text !important;
+  caret-color: #4b3669 !important;
 }
 
 .panel-table {
@@ -524,4 +630,848 @@ body {
   text-align: right;
 }
 
-/*# sourceMappingURL=main.css.map */
+.billetera-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+}
+@media (min-width: 600px) {
+  .billetera-grid {
+    grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+  }
+}
+
+.paquete-card {
+  position: relative;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  color: #ffffff;
+  overflow: hidden;
+  min-height: 12rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 8px 24px rgba(75, 54, 105, 0.25);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.paquete-card::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  right: -30%;
+  width: 60%;
+  height: 120%;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 50%;
+  pointer-events: none;
+}
+.paquete-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(75, 54, 105, 0.35);
+}
+.paquete-card.estado-activo {
+  background: linear-gradient(135deg, #4b3669 0%, #624b85 50%, #7a60a0 100%);
+}
+.paquete-card.estado-vencido {
+  background: linear-gradient(135deg, #6b6b6b 0%, #8a8a8a 50%, #6b6b6b 100%);
+  opacity: 0.7;
+}
+.paquete-card.estado-vencido .paquete-badge {
+  background: #dc3232;
+}
+.paquete-card.estado-agotado {
+  background: linear-gradient(135deg, #5a4a3a 0%, #7a6a5a 50%, #5a4a3a 100%);
+  opacity: 0.75;
+}
+.paquete-card.estado-agotado .paquete-badge {
+  background: #ff8c00;
+}
+
+.paquete-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.paquete-servicio {
+  font-size: 1.15rem;
+  font-weight: 700;
+  font-family: "Raleway", sans-serif;
+  letter-spacing: 0.5px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  max-width: 70%;
+}
+
+.paquete-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(4px);
+  white-space: nowrap;
+}
+
+.paquete-progress {
+  margin: 0.75rem 0;
+}
+.paquete-progress .progress-bar {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.paquete-progress .progress-bar .progress-fill {
+  height: 100%;
+  background: #ff8c00;
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+.paquete-progress .progress-text {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  margin-top: 0.35rem;
+  opacity: 0.9;
+}
+.paquete-progress .progress-text strong {
+  font-size: 1.1rem;
+  color: #ff8c00;
+}
+
+.paquete-fechas {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  opacity: 0.8;
+  margin-bottom: 0.75rem;
+}
+.paquete-fechas span {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.paquete-fechas span small {
+  opacity: 0.7;
+  text-transform: uppercase;
+  font-size: 0.6rem;
+  letter-spacing: 0.5px;
+}
+
+.btn-reservar-credito {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(4px);
+  color: #ffffff;
+  border-radius: 0.75rem;
+  font-weight: 700;
+  font-family: "Raleway", sans-serif;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-height: 2.75rem;
+}
+.btn-reservar-credito:hover {
+  background: #ff8c00;
+  border-color: #ff8c00;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 140, 0, 0.4);
+}
+.btn-reservar-credito:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn-reservar-credito:disabled:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.billetera-empty {
+  text-align: center;
+  padding: 2rem;
+  background: #f9f9f9;
+  border: 2px dashed #ccc;
+  border-radius: 1rem;
+  color: #888;
+}
+.billetera-empty .empty-icon {
+  font-size: 3rem;
+  margin-bottom: 0.75rem;
+}
+.billetera-empty p {
+  font-style: italic;
+  font-size: 0.95rem;
+}
+
+.perfil-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: #ffffff;
+  border-radius: 0.75rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+.perfil-header .perfil-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  border: 3px solid #4b3669;
+  object-fit: cover;
+}
+.perfil-header .perfil-info h3 {
+  margin: 0 0 0.25rem 0;
+  color: #4b3669;
+  font-family: "Raleway", sans-serif;
+  border-left: none;
+  padding-left: 0;
+}
+.perfil-header .perfil-info p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #888;
+}
+
+.seccion-titulo-cliente {
+  color: #4b3669;
+  font-family: "Raleway", sans-serif;
+  font-weight: 700;
+  border-left: 4px solid #c8a35b;
+  padding-left: 0.75rem;
+  margin-bottom: 1rem;
+  font-size: 1.2rem;
+}
+
+.turno-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+  background: #ffffff;
+  border: 1px solid #eee;
+  border-left: 4px solid #4b3669;
+  border-radius: 0.5rem;
+  transition: box-shadow 0.2s ease;
+}
+.turno-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+.turno-card .turno-info strong {
+  color: #4b3669;
+}
+.turno-card .turno-info small {
+  display: block;
+  color: #888;
+  margin-top: 0.25rem;
+}
+.turno-card .turno-actions .btn-cancelar-turno {
+  padding: 0.5rem 1rem;
+  border: 1px solid #dc3232;
+  background: transparent;
+  color: #dc3232;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+.turno-card .turno-actions .btn-cancelar-turno:hover {
+  background: #dc3232;
+  color: #ffffff;
+}
+.turno-card .turno-actions .turno-aviso {
+  font-size: 0.75rem;
+  color: #dc3232;
+  font-style: italic;
+}
+
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 10000;
+  justify-content: center;
+  align-items: center;
+}
+.modal-overlay.active {
+  display: flex;
+}
+
+.modal-content {
+  background: #ffffff;
+  border-radius: 1rem;
+  padding: 2rem;
+  max-width: 500px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.2);
+  animation: modalSlideIn 0.3s ease;
+}
+.modal-content h3 {
+  color: #4b3669;
+  font-family: "Raleway", sans-serif;
+  border-left: 4px solid #c8a35b;
+  padding-left: 0.75rem;
+  margin-top: 0;
+}
+.modal-content .modal-close {
+  float: right;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #888;
+  line-height: 1;
+}
+.modal-content .modal-close:hover {
+  color: #4b3669;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.paquetes-admin .paquetes-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+.paquetes-admin .stat-card {
+  background: #ffffff;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  text-align: center;
+  border: 1px solid #eee;
+}
+.paquetes-admin .stat-card .stat-number {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #4b3669;
+  display: block;
+}
+.paquetes-admin .stat-card .stat-label {
+  font-size: 0.75rem;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.paquetes-filters {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.paquetes-filters .filter-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid #ddd;
+  background: #ffffff;
+  border-radius: 1.25rem;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+.paquetes-filters .filter-btn.active, .paquetes-filters .filter-btn:hover {
+  background: #4b3669;
+  color: #ffffff;
+  border-color: #4b3669;
+}
+
+.badge-estado {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.badge-estado.badge-activo {
+  background: rgba(46, 204, 113, 0.15);
+  color: #27ae60;
+}
+.badge-estado.badge-vencido {
+  background: rgba(220, 50, 50, 0.15);
+  color: #dc3232;
+}
+.badge-estado.badge-agotado {
+  background: rgba(255, 140, 0, 0.15);
+  color: #ff8c00;
+}
+
+.form-asignar-paquete {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.form-asignar-paquete .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.form-asignar-paquete .form-group label {
+  font-weight: bold;
+  font-family: "Raleway", sans-serif;
+  color: #4b3669;
+  font-size: 0.9rem;
+}
+.form-asignar-paquete .form-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+@media (min-width: 768px) {
+  .form-asignar-paquete .form-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.form-asignar-paquete .btn-asignar-paquete {
+  width: 100%;
+  padding: 0.9375rem 2.5rem;
+  border-radius: 1.25rem;
+  font-size: 0.875rem;
+  font-family: "Raleway", sans-serif;
+  text-transform: uppercase;
+  font-weight: bold;
+  min-height: 2.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #4b3669 0%, #624b85 50%, #7a60a0 100%);
+  color: #ffffff;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 5px rgba(75, 54, 105, 0.3);
+}
+.form-asignar-paquete .btn-asignar-paquete:hover:not(:disabled) {
+  background-color: #ff8c00;
+  background-image: none;
+  border: 1px solid #e67e00;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(255, 140, 0, 0.4);
+}
+.form-asignar-paquete .btn-asignar-paquete:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+@media (min-width: 768px) {
+  .form-asignar-paquete .btn-asignar-paquete {
+    width: auto;
+  }
+}
+
+.user-search-results {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border: 1px solid #ddd;
+  border-top: none;
+  border-radius: 0 0 0.5rem 0.5rem;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+.user-search-results .user-result-item {
+  padding: 0.75rem;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #f0f0f0;
+  transition: background 0.15s ease;
+}
+.user-search-results .user-result-item:hover {
+  background: rgba(75, 54, 105, 0.05);
+}
+.user-search-results .user-result-item .user-name {
+  font-weight: 600;
+  color: #333;
+}
+.user-search-results .user-result-item .user-email {
+  font-size: 0.8rem;
+  color: #888;
+}
+.user-search-results .user-result-item:last-child {
+  border-bottom: none;
+}
+
+.user-search-container {
+  position: relative;
+}
+
+.selected-user-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  background: rgba(75, 54, 105, 0.1);
+  border-radius: 1rem;
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+}
+.selected-user-chip .chip-remove {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  color: #888;
+  line-height: 1;
+}
+.selected-user-chip .chip-remove:hover {
+  color: #dc3232;
+}
+
+.mp-toggle-container {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: rgba(75, 54, 105, 0.05);
+  padding: 0.5rem 1rem;
+  border-radius: 2rem;
+  border: 1px solid rgba(75, 54, 105, 0.1);
+}
+.mp-toggle-container .mp-toggle-label {
+  font-family: "Raleway", sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #4b3669;
+}
+
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 46px;
+  height: 24px;
+}
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.toggle-switch input:checked + .toggle-slider {
+  background-color: #ff8c00;
+}
+.toggle-switch input:focus + .toggle-slider {
+  box-shadow: 0 0 1px #ff8c00;
+}
+.toggle-switch input:checked + .toggle-slider:before {
+  transform: translateX(22px);
+}
+.toggle-switch input:disabled + .toggle-slider {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.toggle-switch .toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: 0.4s;
+  border-radius: 24px;
+}
+.toggle-switch .toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.4s;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* --- Floating Menu (Negocio) --- */
+.btn-floating-menu {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  width: 60px;
+  height: 60px;
+  background: var(--v-bg) !important;
+  border: 2px solid var(--v-primary) !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(75, 54, 105, 0.3);
+  z-index: 100005 !important;
+  transition: all 0.3s ease;
+}
+
+.btn-floating-menu span {
+  display: block;
+  width: 25px;
+  height: 2px;
+  background: #4b3669;
+  border-radius: 2px;
+  transition: all 0.3s ease;
+}
+
+/* Transform into X when active */
+.btn-floating-menu.active span:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+.btn-floating-menu.active span:nth-child(2) {
+  opacity: 0;
+}
+.btn-floating-menu.active span:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+.menu-overlay-negocio {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.98) !important;
+  display: flex !important;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 100000 !important;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.4s ease;
+  pointer-events: none;
+}
+
+.menu-overlay-negocio.active {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+.menu-overlay-negocio ul {
+  list-style: none;
+  padding: 0;
+  text-align: center;
+}
+
+.menu-overlay-negocio ul li {
+  margin: 1.5rem 0;
+  transform: translateY(30px);
+  opacity: 0;
+  transition: all 0.4s ease;
+}
+
+.menu-overlay-negocio.active ul li {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.menu-overlay-negocio ul li button {
+  background: none;
+  border: none;
+  color: var(--v-primary); /* Violet text */
+  font-size: 2rem;
+  font-weight: 700;
+  font-family: 'Raleway', sans-serif;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  padding: 0.5rem 1rem;
+}
+
+.menu-overlay-negocio ul li button:hover {
+  color: var(--v-accent); /* Soft Gold */
+}
+
+/* --- Horarios Section --- */
+.schedule-container {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+@media (min-width: 992px) {
+  .schedule-container {
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  }
+}
+
+.day-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.25rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  border: 1px solid #eee;
+  transition: transform 0.3s ease;
+}
+
+.day-card:hover {
+  transform: translateY(-5px);
+  border-color: #4b3669;
+}
+
+.day-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #f8f8f8;
+}
+
+.day-header h3 {
+  margin: 0;
+  color: #4b3669;
+  text-transform: capitalize;
+  font-size: 1.2rem;
+}
+
+.day-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.day-grid .form-group {
+  margin-bottom: 0.5rem;
+}
+
+.day-grid label {
+  font-size: 0.8rem;
+  color: #666;
+  margin-bottom: 0.25rem;
+}
+
+.day-grid input[type="time"] {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-family: inherit;
+  color: #333;
+}
+
+.btn-save-day {
+  margin-top: 1rem;
+  width: 100%;
+  padding: 0.6rem;
+  background: #4b3669;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.btn-save-day:hover {
+  background: #624b85;
+}
+
+.btn-save-day.success {
+  background: #27ae60;
+}
+
+@media (max-width: 768px) {
+  /* Global Adjustments */
+  .app-container, .wrap {
+    padding: 1rem !important;
+  }
+  
+  h1 { font-size: 1.5rem !important; }
+  h2 { font-size: 1.3rem !important; }
+  h3 { font-size: 1.2rem !important; }
+  
+  .btn-reserva, .btn-inicio, .btn-google-login-cliente, .button-primary {
+    width: 100% !important;
+    margin-bottom: 0.5rem;
+  }
+
+  /* Business Dashboard specific */
+  .app-nav {
+    display: none !important;
+  }
+  .app-dashboard {
+    padding-bottom: 5rem;
+  }
+  .app-main-view {
+    padding: 0.5rem !important;
+  }
+  .panel-card {
+    padding: 1rem !important;
+  }
+  
+  /* Client Dashboard specific */
+  .perfil-header {
+    flex-direction: column;
+    text-align: center;
+    gap: 0.5rem;
+  }
+  
+  #comprar-paquetes-container > div {
+    flex-direction: column !important;
+  }
+  
+  #comprar-paquete-precio {
+    justify-content: center;
+    margin: 1rem 0;
+  }
+
+  /* Main Booking Flow specific */
+  #reserva-flow h3 {
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  #grid-horarios {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 0.5rem !important;
+  }
+  
+  .btn-horario {
+    padding: 0.75rem 0.5rem !important;
+    font-size: 0.9rem !important;
+    min-width: auto !important;
+  }
+
+  /* Modals */
+  .modal-content {
+    width: 95% !important;
+    padding: 1.5rem !important;
+  }
+}
+
+@media (min-width: 768px) {
+  .btn-floating-menu {
+    display: none !important;
+  }
+}

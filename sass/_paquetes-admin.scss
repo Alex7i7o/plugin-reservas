@@ -1,0 +1,225 @@
+// _paquetes-admin.scss — Estilos para la gestión de paquetes en app-negocio
+
+.paquetes-admin {
+  .paquetes-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .stat-card {
+    background: $white;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    text-align: center;
+    border: 1px solid #eee;
+
+    .stat-number {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: $violeta;
+      display: block;
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+  }
+}
+
+// Filtros de paquetes
+.paquetes-filters {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  align-items: center;
+
+  .filter-btn {
+    padding: 0.5rem 1rem;
+    border: 1px solid #ddd;
+    background: $white;
+    border-radius: 1.25rem;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+
+    &.active,
+    &:hover {
+      background: $violeta;
+      color: $white;
+      border-color: $violeta;
+    }
+  }
+}
+
+// Badge de estado en tabla
+.badge-estado {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+
+  &.badge-activo {
+    background: rgba(46, 204, 113, 0.15);
+    color: #27ae60;
+  }
+
+  &.badge-vencido {
+    background: rgba(220, 50, 50, 0.15);
+    color: #dc3232;
+  }
+
+  &.badge-agotado {
+    background: rgba(255, 140, 0, 0.15);
+    color: $naranja;
+  }
+}
+
+// Formulario de asignación de paquetes
+.form-asignar-paquete {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+
+    label {
+      font-weight: bold;
+      font-family: 'Raleway', sans-serif;
+      color: $violeta;
+      font-size: 0.9rem;
+    }
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+
+    @media (min-width: 768px) {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .btn-asignar-paquete {
+    width: 100%;
+    padding: 0.9375rem 2.5rem;
+    border-radius: 1.25rem;
+    font-size: 0.875rem;
+    font-family: 'Raleway', sans-serif;
+    text-transform: uppercase;
+    font-weight: bold;
+    min-height: 2.75rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, $violeta 0%, $violeta-claro 50%, #7a60a0 100%);
+    color: $white;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 5px rgba(75, 54, 105, 0.3);
+
+    &:hover:not(:disabled) {
+      background-color: $naranja;
+      background-image: none;
+      border: 1px solid $naranja-hover;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 10px rgba(255, 140, 0, 0.4);
+    }
+
+    &:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
+    @media (min-width: 768px) {
+      width: auto;
+    }
+  }
+}
+
+// Resultados de búsqueda de usuarios
+.user-search-results {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: $white;
+  border: 1px solid #ddd;
+  border-top: none;
+  border-radius: 0 0 0.5rem 0.5rem;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+
+  .user-result-item {
+    padding: 0.75rem;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background 0.15s ease;
+
+    &:hover {
+      background: rgba($violeta, 0.05);
+    }
+
+    .user-name {
+      font-weight: 600;
+      color: #333;
+    }
+
+    .user-email {
+      font-size: 0.8rem;
+      color: #888;
+    }
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+}
+
+.user-search-container {
+  position: relative;
+}
+
+// Selected user chip
+.selected-user-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  background: rgba($violeta, 0.1);
+  border-radius: 1rem;
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+
+  .chip-remove {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    color: #888;
+    line-height: 1;
+
+    &:hover {
+      color: #dc3232;
+    }
+  }
+}

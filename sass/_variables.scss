@@ -1,4 +1,15 @@
-// Variables de Marca
+// ==========================================================================
+// VIOLETT DESIGN TOKENS — Variables SASS
+// Estos valores SASS son aliases de las CSS Custom Properties definidas en
+// :root (ver css/main.css). Esto permite usar la sintaxis SASS ($variable)
+// en los archivos .scss mientras que el valor real viene de CSS Custom Properties.
+//
+// IMPORTANTE: Para colores personalizables en runtime, usá siempre la
+// variable CSS nativa (var(--v-xxx)). Las variables SASS solo sirven como
+// referencia durante la compilación y NO se actualizan dinámicamente.
+// ==========================================================================
+
+// --- Colores de Marca (referencia para compilación SASS) ---
 $violeta: #4b3669;
 $violeta-claro: #624b85;
 $violeta-oscuro: #3a2a52;
@@ -7,19 +18,76 @@ $blanco-roto: #f9f9f9;
 $naranja: #ff8c00;
 $naranja-hover: #e67e00;
 
-$primary-color: #ff6b00; // Tu naranja actual
-$secondary-color: #333333;
-$bg-light: #f9f9f9;
+// --- Colores Genéricos ---
 $white: #ffffff;
-$border-radius: 0.625rem;
+$text-color: #333333;
+$text-muted: #888888;
+
+// --- Layout ---
+$border-radius: 0.5rem;
+$border-radius-lg: 1rem;
+$border-radius-pill: 1.25rem;
 $transition: all 0.3s ease;
 
-// Variables CSS (Para la futura funcionalidad dinámica)
-:root {
-  // Estas variables las podrá sobreescribir el cliente
-  --primary-color: #ff6b00; 
-  --border-radius: 0.5rem;
-  --logo-width: 12.5rem;
-}
+// --- CSS Custom Property References (para uso en SASS cuando sea necesario) ---
+// Ejemplo: background: $v-primary; -> se compila a background: var(--v-primary);
+$v-primary: var(--v-primary);
+$v-primary-light: var(--v-primary-light);
+$v-primary-dark: var(--v-primary-dark);
+$v-accent: var(--v-accent);
+$v-highlight: var(--v-highlight);
+$v-highlight-hover: var(--v-highlight-hover);
+$v-font-primary: var(--v-font-primary);
+$v-font-secondary: var(--v-font-secondary);
+$v-bg: var(--v-bg);
+$v-bg-muted: var(--v-bg-muted);
+$v-text: var(--v-text);
+$v-text-muted: var(--v-text-muted);
+$v-text-on-primary: var(--v-text-on-primary);
+$v-danger: var(--v-danger);
+$v-success: var(--v-success);
 
-$p-color: var(--primary-color);
+// --- Design Tokens CSS (estos van en el CSS compilado) ---
+:root {
+  // Colores de Marca
+  --v-primary: #{$violeta};
+  --v-primary-light: #{$violeta-claro};
+  --v-primary-dark: #{$violeta-oscuro};
+  --v-primary-rgb: 75, 54, 105;
+  --v-accent: #{$dorado};
+  --v-highlight: #{$naranja};
+  --v-highlight-hover: #{$naranja-hover};
+  --v-highlight-rgb: 255, 140, 0;
+
+  // Colores Semánticos
+  --v-success: #27ae60;
+  --v-danger: #dc3232;
+  --v-warning: #{$naranja};
+
+  // Superficies
+  --v-bg: #{$white};
+  --v-bg-muted: #{$blanco-roto};
+  --v-bg-card: #{$white};
+  --v-border: #eee;
+  --v-border-strong: #ccd0d4;
+
+  // Texto
+  --v-text: #{$text-color};
+  --v-text-muted: #{$text-muted};
+  --v-text-on-primary: #{$white};
+
+  // Tipografía
+  --v-font-primary: 'Raleway', sans-serif;
+  --v-font-secondary: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+
+  // Bordes y Sombras
+  --v-radius: #{$border-radius};
+  --v-radius-lg: #{$border-radius-lg};
+  --v-radius-pill: #{$border-radius-pill};
+  --v-shadow: 0 2px 5px rgba(var(--v-primary-rgb), 0.3);
+  --v-shadow-lg: 0 8px 24px rgba(var(--v-primary-rgb), 0.25);
+
+  // Tamaños
+  --v-tap-target: 2.75rem;
+  --v-logo-width: 12.5rem;
+}

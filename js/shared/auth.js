@@ -23,7 +23,11 @@ export function inicializarGoogleAuth(config, retryCount = 0) {
         window.clienteNombre = perfil.name;
         window.clienteCreditos = perfil.creditos || {};
         if (perfil.nonce) {
-            appConfig.nonce = perfil.nonce;
+            console.log("Restaurando Nonce de sesión:", perfil.nonce);
+            window.appConfig.nonce = perfil.nonce;
+        }
+        if (perfil.violett_token) {
+            window.appConfig.violettToken = perfil.violett_token;
         }
         mostrarSesionIniciada(perfil);
     }
@@ -55,6 +59,7 @@ export function loginConGoogle() {
 }
 
 async function obtenerPerfilUsuario(token) {
+    console.log('Token enviado a WP:', token);
     const resp = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
         headers: { Authorization: `Bearer ${token}` }
     });
@@ -62,12 +67,11 @@ async function obtenerPerfilUsuario(token) {
     perfil.token = token;
 
     try {
-        const wpResp = await fetch(appConfig.apiUrl + 'auth-google', {
+        const wpResp = await fetch(window.appConfig.apiUrl + 'auth-google', {
             method: 'POST',
             credentials: 'same-origin',
             headers: {
-                'Content-Type': 'application/json',
-                'X-WP-Nonce': appConfig.nonce
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify({
                 token: token
@@ -79,22 +83,37 @@ async function obtenerPerfilUsuario(token) {
             perfil.wpUserId = wpData.user_id;
             perfil.creditos = wpData.creditos;
             if (wpData.nonce) {
-                appConfig.nonce = wpData.nonce;
+                console.log("Sincronizando nuevo Nonce:", wpData.nonce);
+                window.appConfig.nonce = wpData.nonce;
                 perfil.nonce = wpData.nonce;
             }
+            if (wpData.violett_token) {
+                window.appConfig.violettToken = wpData.violett_token;
+                perfil.violett_token = wpData.violett_token;
+            }
         } else {
-            console.error("No se pudo autenticar en WP");
+            const errorData = await wpResp.json();
+            console.error("Error en auth-google:", errorData.message || wpResp.statusText);
         }
     } catch (e) {
-        console.error("Error conectando con WP para auth:", e);
+        console.error("Error de red conectando con WP:", e);
     }
 
     sessionStorage.setItem('userSesion', JSON.stringify(perfil));
     
+    // Pequeño delay de cortesía para estabilizar cookies de WP antes de disparar la UI
+    console.log("Estabilizando sesión (300ms)...");
+    await new Promise(resolve => setTimeout(resolve, 300));
+
     window.googleAccessToken = token;
     window.clienteEmail = perfil.email;
     window.clienteNombre = perfil.name;
     window.clienteCreditos = perfil.creditos || {};
+
+    // Disparador de UI: Si existe la función en main.js, la llamamos inmediatamente
+    if (typeof window.dispararUIViolett === 'function') {
+        window.dispararUIViolett();
+    }
 
     mostrarSesionIniciada(perfil);
 }
@@ -133,16 +152,31 @@ export function mostrarSesionIniciada(perfil) {
         container.appendChild(span);
 
         const btnLogout = document.createElement('button');
-        btnLogout.style.background = 'none';
-        btnLogout.style.border = 'none';
-        btnLogout.style.color = '#ff6b00';
-        btnLogout.style.cursor = 'pointer';
-        btnLogout.style.textDecoration = 'underline';
+        btnLogout.className = 'button';
+        btnLogout.style.marginLeft = 'auto';
+        btnLogout.style.background = '#fef2f2';
+        btnLogout.style.color = '#ef4444';
+        btnLogout.style.border = '1px solid #fee2e2';
+        btnLogout.style.padding = '5px 12px';
+        btnLogout.style.borderRadius = '20px';
         btnLogout.style.fontSize = '12px';
-        btnLogout.textContent = '(Cerrar Sesión)';
+        btnLogout.style.fontWeight = '600';
+        btnLogout.style.cursor = 'pointer';
+        btnLogout.style.transition = 'all 0.2s';
+        btnLogout.textContent = 'Cerrar Sesión';
+        
+        btnLogout.onmouseover = () => {
+            btnLogout.style.background = '#fee2e2';
+        };
+        btnLogout.onmouseout = () => {
+            btnLogout.style.background = '#fef2f2';
+        };
+
         btnLogout.onclick = (e) => {
             e.preventDefault();
-            cerrarSesion();
+            if(confirm('¿Deseas cerrar sesión?')) {
+                cerrarSesion();
+            }
         };
         container.appendChild(btnLogout);
 

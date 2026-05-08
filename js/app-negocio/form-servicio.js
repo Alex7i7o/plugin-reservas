@@ -1,8 +1,25 @@
+/**
+ * @fileoverview Módulo principal del panel de negocio Violett.
+ * Inicializa el layout, los formularios de servicio, la navegación,
+ * y orquesta la carga de todos los submódulos (horarios, paquetes, etc.).
+ * @module app-negocio/form-servicio
+ */
+
 import { initAppLayout } from './AppLayout.js';
 import { fetchAndRenderServicios } from './services-list.js';
+import { initSchedules } from './schedules.js';
 
 let editingServiceId = null;
 
+/**
+ * Abre el formulario en modo edición con los datos de un servicio existente.
+ * @param {Object} serviceData - Datos del servicio a editar
+ * @param {number} serviceData.id - ID del servicio
+ * @param {string} serviceData.titulo - Nombre del servicio
+ * @param {string} serviceData.contenido - Descripción
+ * @param {number} serviceData.precio - Precio
+ * @param {number} serviceData.duracion - Duración en minutos
+ */
 export function openEditForm(serviceData) {
     document.getElementById('servicio-form-title').textContent = 'Editar Servicio';
     document.getElementById('btn-submit-servicio').textContent = 'Actualizar Servicio';
@@ -21,6 +38,9 @@ export function openEditForm(serviceData) {
     document.getElementById('form-crear-servicio').scrollIntoView({ behavior: 'smooth' });
 }
 
+/**
+ * Resetea el formulario de servicio al estado de creación.
+ */
 function resetForm() {
     const form = document.getElementById('form-crear-servicio');
     if (form) form.reset();
@@ -36,6 +56,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Inicializar Layout
     initAppLayout();
+
+    // Inicializar toggle de Mercado Pago
+    initMPToggle(); initSchedules();
 
     const baseApiUrl = appConfig.violettApiUrl || appConfig.apiUrl.replace('wp/v2/', 'violett/v1/');
 
@@ -61,7 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 if (response.ok) {
-                    window.location.reload(); // Recarga para que PHP muestre el dashboard y pase un nonce nuevo
+                    window.location.reload();
                 } else {
                     const data = await response.json();
                     errorMsg.textContent = data.message || 'Error de autenticación.';
@@ -185,3 +208,52 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+// --- Mercado Pago Toggle ---
+/**
+ * Inicializa el toggle de Mercado Pago.
+ * Escucha cambios en el checkbox y envía la configuración al servidor.
+ */
+function initMPToggle() {
+    const checkbox = document.getElementById('mp-toggle-checkbox');
+    const label = document.getElementById('mp-toggle-label');
+    if (!checkbox || !label) return;
+
+    checkbox.addEventListener('change', async () => {
+        const enabled = checkbox.checked;
+        const baseApiUrl = appConfig.violettApiUrl || appConfig.apiUrl.replace('wp/v2/', 'violett/v1/');
+
+        // Feedback visual inmediato
+        label.textContent = enabled ? '💳 Activando...' : '🚫 Desactivando...';
+        checkbox.disabled = true;
+
+        try {
+            const resp = await fetch(`${baseApiUrl}config/mp-toggle`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-WP-Nonce': appConfig.nonce
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({ enabled })
+            });
+
+            if (resp.ok) {
+                const data = await resp.json();
+                label.textContent = data.enabled ? '💳 Cobro MP Activo' : '🚫 Cobro MP Desactivado';
+            } else {
+                // Revert
+                checkbox.checked = !enabled;
+                label.textContent = !enabled ? '💳 Cobro MP Activo' : '🚫 Cobro MP Desactivado';
+                alert('Error al cambiar la configuración de Mercado Pago.');
+            }
+        } catch (e) {
+            console.error('Error toggling MP:', e);
+            checkbox.checked = !enabled;
+            label.textContent = !enabled ? '💳 Cobro MP Activo' : '🚫 Cobro MP Desactivado';
+            alert('Error de red al intentar cambiar la configuración.');
+        } finally {
+            checkbox.disabled = false;
+        }
+    });
+}

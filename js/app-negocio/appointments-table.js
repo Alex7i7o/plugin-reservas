@@ -1,3 +1,15 @@
+/**
+ * @fileoverview Tabla de turnos para el panel de negocio Violett.
+ * Muestra todos los turnos agendados con filtros por fecha y cliente.
+ * Permite cancelar turnos individuales.
+ * @module app-negocio/appointments-table
+ */
+
+/**
+ * Obtiene los turnos del servidor y renderiza la tabla.
+ * Se invoca al hacer clic en "Todos los Turnos" en la navegación.
+ * @returns {Promise<void>}
+ */
 export async function fetchAndRenderAppointments() {
     const container = document.getElementById('appointments-table-container');
     if (!container) return;
@@ -59,7 +71,12 @@ function renderAppointmentsTable(turnos) {
         return dateB - dateA;
     });
 
+    const now = new Date();
+
     turnos.forEach(t => {
+        const apptDate = new Date(`${t.fecha}T${t.hora || '00:00'}`);
+        const canModify = apptDate > now;
+
         tableHtml += `
             <tr>
                 <td>${t.fecha}</td>
@@ -67,7 +84,8 @@ function renderAppointmentsTable(turnos) {
                 <td>${t.cliente}<br><small>${t.email}</small></td>
                 <td>${t.servicio}</td>
                 <td>
-                    <button class="button btn-cancel-turno" data-id="${t.id}" style="background: #dc3232; color: white;">Cancelar Turno</button>
+                    <button class="button btn-edit-turno" data-turno='${JSON.stringify(t)}' ${canModify ? '' : 'disabled'}>Modificar</button>
+                    <button class="button btn-cancel-turno" data-id="${t.id}" style="background: #dc3232; color: white;">Cancelar</button>
                 </td>
             </tr>
         `;
@@ -81,13 +99,22 @@ function renderAppointmentsTable(turnos) {
 
     container.innerHTML = tableHtml;
 
-    // Attach event listeners
+    // Attach event listeners for Cancel
     document.querySelectorAll('.btn-cancel-turno').forEach(btn => {
         btn.addEventListener('click', async (e) => {
             const id = e.target.getAttribute('data-id');
             if (confirm('¿Estás seguro de que deseas cancelar/borrar este turno?')) {
                 await deleteTurno(id);
             }
+        });
+    });
+
+    // Attach event listeners for Edit
+    document.querySelectorAll('.btn-edit-turno').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            const turnoData = JSON.parse(e.currentTarget.getAttribute('data-turno'));
+            const { openEditTurnoForm } = await import('./manual-booking.js');
+            openEditTurnoForm(turnoData);
         });
     });
 }
@@ -185,5 +212,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 applyFilters();
             });
         }
+
+        // Global Edit Listener for buttons rendered by PHP (Section Hoy)
+        document.addEventListener('click', async (e) => {
+            if (e.target && e.target.classList.contains('btn-edit-turno') && e.target.closest('#section-hoy')) {
+                const turnoData = JSON.parse(e.target.getAttribute('data-turno'));
+                const { openEditTurnoForm } = await import('./manual-booking.js');
+                openEditTurnoForm(turnoData);
+            }
+        });
     }
 });

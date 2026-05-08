@@ -1,0 +1,372 @@
+// _billetera.scss — Estilos para la billetera de créditos del cliente
+
+// Contenedor de tarjetas
+.billetera-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+
+  @media (min-width: 600px) {
+    grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+  }
+}
+
+// Tarjeta de paquete
+.paquete-card {
+  position: relative;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  color: $white;
+  overflow: hidden;
+  min-height: 12rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 8px 24px rgba(75, 54, 105, 0.25);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -30%;
+    width: 60%;
+    height: 120%;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px rgba(75, 54, 105, 0.35);
+  }
+
+  // Estado activo
+  &.estado-activo {
+    background: linear-gradient(135deg, $violeta 0%, $violeta-claro 50%, #7a60a0 100%);
+  }
+
+  // Estado vencido
+  &.estado-vencido {
+    background: linear-gradient(135deg, #6b6b6b 0%, #8a8a8a 50%, #6b6b6b 100%);
+    opacity: 0.7;
+
+    .paquete-badge {
+      background: #dc3232;
+    }
+  }
+
+  // Estado agotado
+  &.estado-agotado {
+    background: linear-gradient(135deg, #5a4a3a 0%, #7a6a5a 50%, #5a4a3a 100%);
+    opacity: 0.75;
+
+    .paquete-badge {
+      background: $naranja;
+    }
+  }
+}
+
+.paquete-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.paquete-servicio {
+  font-size: 1.15rem;
+  font-weight: 700;
+  font-family: 'Raleway', sans-serif;
+  letter-spacing: 0.5px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  max-width: 70%;
+}
+
+.paquete-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(4px);
+  white-space: nowrap;
+}
+
+// Barra de progreso de sesiones
+.paquete-progress {
+  margin: 0.75rem 0;
+
+  .progress-bar {
+    height: 6px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+    overflow: hidden;
+
+    .progress-fill {
+      height: 100%;
+      background: $naranja;
+      border-radius: 3px;
+      transition: width 0.5s ease;
+    }
+  }
+
+  .progress-text {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    margin-top: 0.35rem;
+    opacity: 0.9;
+
+    strong {
+      font-size: 1.1rem;
+      color: $naranja;
+    }
+  }
+}
+
+// Fechas
+.paquete-fechas {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  opacity: 0.8;
+  margin-bottom: 0.75rem;
+
+  span {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+
+    small {
+      opacity: 0.7;
+      text-transform: uppercase;
+      font-size: 0.6rem;
+      letter-spacing: 0.5px;
+    }
+  }
+}
+
+// Botón de reserva en tarjeta
+.btn-reservar-credito {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(4px);
+  color: $white;
+  border-radius: 0.75rem;
+  font-weight: 700;
+  font-family: 'Raleway', sans-serif;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-height: 2.75rem;
+
+  &:hover {
+    background: $naranja;
+    border-color: $naranja;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 140, 0, 0.4);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    &:hover {
+      transform: none;
+      box-shadow: none;
+    }
+  }
+}
+
+// Sección de billetera vacía
+.billetera-empty {
+  text-align: center;
+  padding: 2rem;
+  background: $blanco-roto;
+  border: 2px dashed #ccc;
+  border-radius: 1rem;
+  color: #888;
+
+  .empty-icon {
+    font-size: 3rem;
+    margin-bottom: 0.75rem;
+  }
+
+  p {
+    font-style: italic;
+    font-size: 0.95rem;
+  }
+}
+
+// Sección perfil del cliente
+.perfil-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: $white;
+  border-radius: 0.75rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+
+  .perfil-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: 3px solid $violeta;
+    object-fit: cover;
+  }
+
+  .perfil-info {
+    h3 {
+      margin: 0 0 0.25rem 0;
+      color: $violeta;
+      font-family: 'Raleway', sans-serif;
+      border-left: none;
+      padding-left: 0;
+    }
+
+    p {
+      margin: 0;
+      font-size: 0.85rem;
+      color: #888;
+    }
+  }
+}
+
+// Sección títulos en app-cliente
+.seccion-titulo-cliente {
+  color: $violeta;
+  font-family: 'Raleway', sans-serif;
+  font-weight: 700;
+  border-left: 4px solid $dorado;
+  padding-left: 0.75rem;
+  margin-bottom: 1rem;
+  font-size: 1.2rem;
+}
+
+// Turnos futuros
+.turno-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+  background: $white;
+  border: 1px solid #eee;
+  border-left: 4px solid $violeta;
+  border-radius: 0.5rem;
+  transition: box-shadow 0.2s ease;
+
+  &:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  .turno-info {
+    strong {
+      color: $violeta;
+    }
+
+    small {
+      display: block;
+      color: #888;
+      margin-top: 0.25rem;
+    }
+  }
+
+  .turno-actions {
+    .btn-cancelar-turno {
+      padding: 0.5rem 1rem;
+      border: 1px solid #dc3232;
+      background: transparent;
+      color: #dc3232;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 600;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: #dc3232;
+        color: $white;
+      }
+    }
+
+    .turno-aviso {
+      font-size: 0.75rem;
+      color: #dc3232;
+      font-style: italic;
+    }
+  }
+}
+
+// Modal de reserva rápida
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 10000;
+  justify-content: center;
+  align-items: center;
+
+  &.active {
+    display: flex;
+  }
+}
+
+.modal-content {
+  background: $white;
+  border-radius: 1rem;
+  padding: 2rem;
+  max-width: 500px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.2);
+  animation: modalSlideIn 0.3s ease;
+
+  h3 {
+    color: $violeta;
+    font-family: 'Raleway', sans-serif;
+    border-left: 4px solid $dorado;
+    padding-left: 0.75rem;
+    margin-top: 0;
+  }
+
+  .modal-close {
+    float: right;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #888;
+    line-height: 1;
+
+    &:hover {
+      color: $violeta;
+    }
+  }
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

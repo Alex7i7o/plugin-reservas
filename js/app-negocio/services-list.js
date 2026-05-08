@@ -1,5 +1,15 @@
+/**
+ * @fileoverview Tabla de servicios para el panel de negocio Violett.
+ * Renderiza la lista de servicios con acciones de editar y eliminar.
+ * @module app-negocio/services-list
+ */
+
 import { openEditForm } from './form-servicio.js';
 
+/**
+ * Obtiene los servicios del servidor y renderiza la tabla.
+ * @returns {Promise<void>}
+ */
 export async function fetchAndRenderServicios() {
     const container = document.getElementById('servicios-table-container');
     if (!container) return;
@@ -30,7 +40,6 @@ export async function fetchAndRenderServicios() {
             <table class="panel-table">
                 <thead>
                     <tr>
-                        <th>ID</th>
                         <th>Título</th>
                         <th>Precio</th>
                         <th>Duración</th>
@@ -43,7 +52,6 @@ export async function fetchAndRenderServicios() {
         servicios.forEach(srv => {
             tableHtml += `
                 <tr>
-                    <td>${srv.id}</td>
                     <td><strong>${srv.titulo}</strong></td>
                     <td>$${srv.precio}</td>
                     <td>${srv.duracion} min</td>

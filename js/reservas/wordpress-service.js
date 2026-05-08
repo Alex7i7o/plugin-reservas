@@ -1,10 +1,12 @@
 export async function guardarReservaEnWP(datos) {
-    const response = await fetch(`${appConfig.apiUrl}reserva`, {
+    const tokenParam = appConfig.violettToken ? `?violett_token=${appConfig.violettToken}` : '';
+    const response = await fetch(`${appConfig.apiUrl}reserva${tokenParam}`, {
         method: 'POST',
         credentials: 'same-origin',
         headers: {
             'Content-Type': 'application/json',
-            'X-WP-Nonce': appConfig.nonce
+            'X-WP-Nonce': appConfig.nonce,
+            'X-Violett-Token': appConfig.violettToken || ''
         },
         body: JSON.stringify(datos)
     });

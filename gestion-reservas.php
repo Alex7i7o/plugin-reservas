@@ -24,15 +24,104 @@ if (file_exists(plugin_dir_path(__FILE__) . 'vendor/autoload.php')) {
     require_once plugin_dir_path(__FILE__) . 'vendor/autoload.php';
 }
 
+// Crear tabla de clientes de WhatsApp en la activación
+function sr_crear_tabla_clientes_whatsapp() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sr_clientes_whatsapp';
+    $charset_collate = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE $table_name (
+        id mediumint(9) NOT NULL AUTO_INCREMENT,
+        telefono varchar(50) NOT NULL,
+        nombre varchar(100) DEFAULT '' NOT NULL,
+        ultima_visita datetime DEFAULT '0000-00-00 00:00:00' NOT NULL,
+        ultimo_mensaje_enviado datetime DEFAULT '0000-00-00 00:00:00' NOT NULL,
+        historial_servicios text NOT NULL,
+        PRIMARY KEY  (id),
+        UNIQUE KEY telefono (telefono)
+    ) $charset_collate;";
+
+    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+    dbDelta($sql);
+}
+register_activation_hook(__FILE__, 'sr_crear_tabla_clientes_whatsapp');
+
+// Cargar lógica de WhatsApp
+require_once plugin_dir_path(__FILE__) . 'includes/whatsapp-bot.php';
+require_once plugin_dir_path(__FILE__) . 'includes/whatsapp-cron.php';
+
 // --- Opciones de Configuración de Google ---
+function sr_verificar_token_google($access_token) {
+    $url = 'https://www.googleapis.com/oauth2/v3/userinfo';
+    $response = wp_remote_get($url, array(
+        'headers' => array('Authorization' => 'Bearer ' . $access_token)
+    ));
+
+    if (is_wp_error($response)) return false;
+
+    $data = json_decode(wp_remote_retrieve_body($response), true);
+    return isset($data['email']) ? $data : false;
+}
+
 function sr_registrar_ajustes() {
     register_setting('sr_config_reservas_group', 'sr_google_client_id');
     register_setting('sr_config_reservas_group', 'sr_service_account_email', 'sanitize_email');
     register_setting('sr_config_reservas_group', 'sr_service_account_private_key');
     register_setting('sr_config_reservas_group', 'sr_calendar_id');
     register_setting('sr_config_reservas_group', 'sr_mp_access_token');
+    register_setting('sr_config_reservas_group', 'sr_mp_enabled');
+    register_setting('sr_config_reservas_group', 'sr_discount_5');
+    register_setting('sr_config_reservas_group', 'sr_discount_10');
+    register_setting('sr_config_reservas_group', 'sr_package_config');
+    
+    // Configuraciones de WhatsApp y Gemini
+    register_setting('sr_config_reservas_group', 'sr_gemini_api_key');
+    register_setting('sr_config_reservas_group', 'sr_whatsapp_api_token');
+    register_setting('sr_config_reservas_group', 'sr_whatsapp_phone_id');
+    register_setting('sr_config_reservas_group', 'sr_prompt_personalidad');
+    register_setting('sr_config_reservas_group', 'sr_prompt_recuperacion');
+    register_setting('sr_config_reservas_group', 'sr_recordatorios_activos', array(
+        'type' => 'boolean',
+        'default' => false
+    ));
 }
 add_action('admin_init', 'sr_registrar_ajustes');
+
+/**
+ * Filtro Global para Autenticación vía Token (X-Violett-Token)
+ * Esto permite que las peticiones REST funcionen sin cookies/nonces nativos de WP.
+ */
+add_filter('rest_authentication_errors', function($result) {
+    // Intentar obtener el token de varias formas (normalización de servidores)
+    $token = null;
+    if (isset($_SERVER['HTTP_X_VIOLETT_TOKEN'])) {
+        $token = $_SERVER['HTTP_X_VIOLETT_TOKEN'];
+    } elseif (isset($_GET['violett_token'])) {
+        $token = $_GET['violett_token'];
+    } elseif (function_exists('getallheaders')) {
+        $headers = getallheaders();
+        if (isset($headers['X-Violett-Token'])) {
+            $token = $headers['X-Violett-Token'];
+        }
+    }
+
+    if (!empty($token)) {
+        $users = get_users(array(
+            'meta_key' => 'violett_api_token',
+            'meta_value' => $token,
+            'number' => 1,
+            'fields' => 'ID'
+        ));
+
+        if (!empty($users)) {
+            wp_set_current_user($users[0]);
+            return true; // Autenticación exitosa via Token! Ignoramos errores de Nonce/Cookie previos.
+        }
+    }
+
+    // Si no hay token válido, respetamos el resultado previo de WP (ej. error de nonce)
+    return $result;
+});
 
 function sr_agregar_menu_ajustes() {
     add_options_page(
@@ -88,6 +177,18 @@ function sr_renderizar_pagina_ajustes() {
                         <p class="description">Access Token de Mercado Pago para procesar pagos de reservas</p>
                     </td>
                 </tr>
+                <tr valign="top">
+                    <th scope="row">Descuento Paquete 5 Sesiones (%)</th>
+                    <td>
+                        <input type="number" name="sr_discount_5" value="<?php echo esc_attr(get_option('sr_discount_5', '10')); ?>" class="small-text" /> %
+                    </td>
+                </tr>
+                <tr valign="top">
+                    <th scope="row">Descuento Paquete 10 Sesiones (%)</th>
+                    <td>
+                        <input type="number" name="sr_discount_10" value="<?php echo esc_attr(get_option('sr_discount_10', '20')); ?>" class="small-text" /> %
+                    </td>
+                </tr>
             </table>
             <?php submit_button(); ?>
         </form>
@@ -134,6 +235,151 @@ function crear_cpt_reservas() {
     register_post_type('reserva', $args);
 }
 add_action('init', 'crear_cpt_reservas');
+
+// CPT Paquete Cliente (Billetera de Créditos)
+function crear_cpt_paquetes() {
+    $labels = array(
+        'name' => 'Paquetes Cliente',
+        'singular_name' => 'Paquete Cliente',
+        'menu_name' => 'Paquetes',
+    );
+
+    $args = array(
+        'labels'             => $labels,
+        'public'             => false,
+        'show_ui'            => true,
+        'show_in_rest'       => true,
+        'menu_icon'          => 'dashicons-wallet',
+        'supports'           => array('title'),
+    );
+    register_post_type('paquete_cliente', $args);
+}
+add_action('init', 'crear_cpt_paquetes');
+
+// Registrar campos ACF para paquete_cliente (programáticamente)
+function registrar_acf_paquete_cliente() {
+    if (!function_exists('acf_add_local_field_group')) return;
+
+    acf_add_local_field_group(array(
+        'key' => 'group_paquete_cliente',
+        'title' => 'Datos del Paquete',
+        'fields' => array(
+            array(
+                'key' => 'field_paq_user_id',
+                'label' => 'User ID Vinculado',
+                'name' => 'user_id_vinculado',
+                'type' => 'number',
+                'required' => 1,
+            ),
+            array(
+                'key' => 'field_paq_servicio_id',
+                'label' => 'Servicio Vinculado',
+                'name' => 'servicio_vinculado',
+                'type' => 'post_object',
+                'post_type' => array('servicio'),
+                'return_format' => 'id',
+                'required' => 1,
+            ),
+            array(
+                'key' => 'field_paq_sesiones_totales',
+                'label' => 'Sesiones Totales',
+                'name' => 'sesiones_totales',
+                'type' => 'number',
+                'required' => 1,
+                'default_value' => 1,
+                'min' => 1,
+            ),
+            array(
+                'key' => 'field_paq_sesiones_restantes',
+                'label' => 'Sesiones Restantes',
+                'name' => 'sesiones_restantes',
+                'type' => 'number',
+                'required' => 1,
+                'default_value' => 1,
+                'min' => 0,
+            ),
+            array(
+                'key' => 'field_paq_fecha_compra',
+                'label' => 'Fecha de Compra',
+                'name' => 'fecha_compra',
+                'type' => 'date_picker',
+                'display_format' => 'Y-m-d',
+                'return_format' => 'Y-m-d',
+                'required' => 1,
+            ),
+            array(
+                'key' => 'field_paq_estado',
+                'label' => 'Estado',
+                'name' => 'estado',
+                'type' => 'select',
+                'choices' => array(
+                    'activo' => 'Activo',
+                    'vencido' => 'Vencido',
+                    'agotado' => 'Agotado',
+                ),
+                'default_value' => 'activo',
+                'required' => 1,
+            ),
+        ),
+        'location' => array(
+            array(
+                array(
+                    'param' => 'post_type',
+                    'operator' => '==',
+                    'value' => 'paquete_cliente',
+                ),
+            ),
+        ),
+    ));
+}
+add_action('acf/init', 'registrar_acf_paquete_cliente');
+
+// --- WP-Cron: Vencimiento automático de paquetes (30 días) ---
+function sr_programar_cron_vencimiento() {
+    if (!wp_next_scheduled('sr_verificar_vencimiento_paquetes')) {
+        wp_schedule_event(time(), 'daily', 'sr_verificar_vencimiento_paquetes');
+    }
+}
+add_action('wp', 'sr_programar_cron_vencimiento');
+
+function sr_ejecutar_vencimiento_paquetes() {
+    $hace_30_dias = date('Y-m-d', strtotime('-30 days'));
+
+    $args = array(
+        'post_type'      => 'paquete_cliente',
+        'posts_per_page' => -1,
+        'post_status'    => 'publish',
+        'meta_query'     => array(
+            'relation' => 'AND',
+            array(
+                'key'     => 'estado',
+                'value'   => 'activo',
+                'compare' => '='
+            ),
+            array(
+                'key'     => 'fecha_compra',
+                'value'   => $hace_30_dias,
+                'compare' => '<',
+                'type'    => 'DATE'
+            ),
+        ),
+    );
+
+    $paquetes = get_posts($args);
+    foreach ($paquetes as $paquete) {
+        update_field('estado', 'vencido', $paquete->ID);
+    }
+}
+add_action('sr_verificar_vencimiento_paquetes', 'sr_ejecutar_vencimiento_paquetes');
+
+// Limpiar cron al desactivar el plugin
+function sr_desactivar_cron_vencimiento() {
+    $timestamp = wp_next_scheduled('sr_verificar_vencimiento_paquetes');
+    if ($timestamp) {
+        wp_unschedule_event($timestamp, 'sr_verificar_vencimiento_paquetes');
+    }
+}
+register_deactivation_hook(__FILE__, 'sr_desactivar_cron_vencimiento');
 
 // Permitir que la API acepte los campos de ACF al crear un post desde JS
 add_filter( 'acf/rest/allow_update', '__return_true' );
@@ -199,6 +445,30 @@ function encolar_scripts_reservas() {
     );
 
     wp_enqueue_script(
+        'app-negocio-package-config',
+        plugins_url('/js/app-negocio/package-config.js', __FILE__),
+        array('reserva-main'),
+        '1.0',
+        true
+    );
+
+    wp_enqueue_script(
+        'app-negocio-theme-config',
+        plugins_url('/js/app-negocio/theme-config.js', __FILE__),
+        array('reserva-main'),
+        '1.0',
+        true
+    );
+
+    wp_enqueue_script(
+        'app-negocio-whatsapp-config',
+        plugins_url('/js/app-negocio/whatsapp-config.js', __FILE__),
+        array('reserva-main'),
+        '1.0',
+        true
+    );
+
+    wp_enqueue_script(
     'reserva-main', 
     plugins_url('/js/main.js', __FILE__), 
     array(), // Sin dependencias de PHP, las dependencias son los 'import' en JS
@@ -247,14 +517,62 @@ function encolar_scripts_reservas() {
         'googleClientId' => $client_id,
         'calendarId' => $calendar_id,
         'nonce'  => wp_create_nonce('wp_rest'),
-        'horariosSemana' => $config_semana
+        'horariosSemana' => $config_semana,
+        'mpEnabled' => get_option('sr_mp_enabled', '1') === '1',
+        'discounts' => array(
+            '5' => get_option('sr_discount_5', '10'),
+            '10' => get_option('sr_discount_10', '20')
+        ),
+        'packageOptions' => get_option('sr_package_config', array(
+            array('sessions' => 1, 'discount' => 0),
+            array('sessions' => 5, 'discount' => (int)get_option('sr_discount_5', '10')),
+            array('sessions' => 10, 'discount' => (int)get_option('sr_discount_10', '20'))
+        )),
+        'themeConfig' => get_option('sr_theme_config', array()),
+        'whatsappConfig' => array(
+            'gemini_api_key' => get_option('sr_gemini_api_key', ''),
+            'whatsapp_api_token' => get_option('sr_whatsapp_api_token', ''),
+            'whatsapp_phone_id' => get_option('sr_whatsapp_phone_id', ''),
+            'prompt_personalidad' => get_option('sr_prompt_personalidad', 'Eres una asistente virtual amigable de Violett Estética.'),
+            'prompt_recuperacion' => get_option('sr_prompt_recuperacion', 'Genera un mensaje corto, amigable y persuasivo invitando al cliente a volver a la estética tras más de un mes de ausencia. Puedes ofrecerle consultar promociones vigentes. Usa un tono cálido y femenino.'),
+            'recordatorios_activos' => get_option('sr_recordatorios_activos', false)
+        )
     ));
 }
 add_action('wp_enqueue_scripts', 'encolar_scripts_reservas');
 
+// --- Inyectar CSS Custom Properties dinámicas desde la config del tema ---
+add_action('wp_head', function() {
+    $theme = get_option('sr_theme_config', array());
+    if (empty($theme)) return;
+    echo '<style id="violett-dynamic-theme">:root{';
+    $map = array(
+        'primary' => '--v-primary', 'primaryLight' => '--v-primary-light',
+        'primaryDark' => '--v-primary-dark', 'accent' => '--v-accent',
+        'highlight' => '--v-highlight', 'highlightHover' => '--v-highlight-hover',
+    );
+    foreach ($map as $key => $var) {
+        if (!empty($theme[$key])) echo $var.':'.esc_attr($theme[$key]).';';
+    }
+    if (!empty($theme['fontPrimary'])) echo '--v-font-primary:'.esc_attr($theme['fontPrimary']).',sans-serif;';
+    if (!empty($theme['fontSecondary'])) echo '--v-font-secondary:'.esc_attr($theme['fontSecondary']).',sans-serif;';
+    // Calcular RGB para primary
+    if (!empty($theme['primary'])) {
+        $hex = ltrim($theme['primary'], '#');
+        $r = hexdec(substr($hex,0,2)); $g = hexdec(substr($hex,2,2)); $b = hexdec(substr($hex,4,2));
+        echo '--v-primary-rgb:'.$r.','.$g.','.$b.';';
+    }
+    if (!empty($theme['highlight'])) {
+        $hex = ltrim($theme['highlight'], '#');
+        $r = hexdec(substr($hex,0,2)); $g = hexdec(substr($hex,2,2)); $b = hexdec(substr($hex,4,2));
+        echo '--v-highlight-rgb:'.$r.','.$g.','.$b.';';
+    }
+    echo '}</style>';
+});
+
 // Este filtro ahora sí va a encontrar 'reserva-auth', 'reserva-main' y 'app-cliente-main'
 add_filter('script_loader_tag', function($tag, $handle, $src) {
-    if (in_array($handle, array('reserva-main', 'app-cliente-main', 'app-negocio-form', 'app-negocio-services-list', 'app-negocio-appointments', 'app-negocio-manual-booking'))) {
+    if (in_array($handle, array('reserva-main', 'app-cliente-main', 'app-negocio-form', 'app-negocio-services-list', 'app-negocio-appointments', 'app-negocio-manual-booking', 'app-negocio-paquetes', 'app-negocio-package-config', 'app-negocio-theme-config', 'app-negocio-whatsapp-config'))) {
         $tag = preg_replace('/type=(["\']).*?\1\s*/', '', $tag);
         $tag = str_replace('<script ', '<script type="module" ', $tag);
     }
@@ -267,10 +585,13 @@ add_filter('script_loader_tag', function($tag, $handle, $src) {
 // Ejemplo conceptual de la función en PHP
 function insertar_en_calendario_negocio($reserva_data) {
     $client = new \Google\Client();
+    $private_key = get_option('sr_service_account_private_key');
+    $private_key = str_replace("\\n", "\n", $private_key);
+
     $authConfig = array(
         'type'         => 'service_account',
         'client_email' => get_option('sr_service_account_email'),
-        'private_key'  => get_option('sr_service_account_private_key'),
+        'private_key'  => $private_key,
     );
     $client->setAuthConfig($authConfig);
     $client->addScope(\Google\Service\Calendar::CALENDAR_EVENTS);
@@ -300,16 +621,16 @@ add_action('rest_api_init', function () {
     };
 
     $verificar_auth = function ($request) {
-        if (!is_user_logged_in()) {
-            return new WP_Error('rest_not_logged_in', 'Debes iniciar sesión.', array('status' => 401));
+        if (is_user_logged_in()) {
+            return true;
         }
-        return true;
+        return new WP_Error('rest_not_logged_in', 'Debes iniciar sesión.', array('status' => 401));
     };
 
     register_rest_route('wp/v2', '/auth-google', array(
         'methods' => 'POST',
         'callback' => 'auth_google_callback',
-        'permission_callback' => $verificar_nonce,
+        'permission_callback' => '__return_true',
     ));
 
     // Endpoints de autenticación nativa para app-negocio
@@ -326,6 +647,54 @@ add_action('rest_api_init', function () {
             return new WP_REST_Response(array('message' => 'Sesión cerrada'), 200);
         },
         'permission_callback' => '__return_true'
+    ));
+
+    // Endpoint para guardar configuraciones de WhatsApp
+    register_rest_route('violett/v1', '/config/whatsapp', array(
+        'methods' => 'POST',
+        'callback' => function($request) {
+            $params = $request->get_json_params();
+
+            if (isset($params['gemini_api_key'])) {
+                update_option('sr_gemini_api_key', sanitize_text_field($params['gemini_api_key']));
+            }
+            if (isset($params['whatsapp_api_token'])) {
+                update_option('sr_whatsapp_api_token', sanitize_text_field($params['whatsapp_api_token']));
+            }
+            if (isset($params['whatsapp_phone_id'])) {
+                update_option('sr_whatsapp_phone_id', sanitize_text_field($params['whatsapp_phone_id']));
+            }
+            if (isset($params['prompt_personalidad'])) {
+                update_option('sr_prompt_personalidad', sanitize_textarea_field($params['prompt_personalidad']));
+            }
+            if (isset($params['prompt_recuperacion'])) {
+                update_option('sr_prompt_recuperacion', sanitize_textarea_field($params['prompt_recuperacion']));
+            }
+            if (isset($params['recordatorios_activos'])) {
+                update_option('sr_recordatorios_activos', (bool) $params['recordatorios_activos']);
+            }
+
+            // Test de conexión simple (opcionalmente)
+            $gemini_key = get_option('sr_gemini_api_key');
+            $status_gemini = false;
+            if ($gemini_key) {
+                $response = wp_remote_get("https://generativelanguage.googleapis.com/v1beta/models?key=" . $gemini_key);
+                if (!is_wp_error($response) && wp_remote_retrieve_response_code($response) == 200) {
+                    $status_gemini = true;
+                }
+            }
+
+            return new WP_REST_Response(array(
+                'message' => 'Configuración de WhatsApp actualizada exitosamente',
+                'gemini_status' => $status_gemini ? 'Conectado' : 'Error/No configurado'
+            ), 200);
+        },
+        'permission_callback' => function() {
+            if (!is_user_logged_in()) {
+                return new WP_Error('rest_not_logged_in', 'Debes iniciar sesión.', array('status' => 401));
+            }
+            return current_user_can('manage_options') || current_user_can('editor');
+        }
     ));
 
     // Nuevo endpoint para crear servicios desde app-negocio
@@ -346,9 +715,47 @@ add_action('rest_api_init', function () {
         'permission_callback' => $verificar_auth,
     ));
 
-        register_rest_route('violett/v1', '/servicios/todos', array(
+    register_rest_route('violett/v1', '/servicios/todos', array(
         'methods' => 'GET',
         'callback' => 'obtener_servicios_callback',
+        'permission_callback' => function($request) use ($verificar_auth) {
+            // First check if user is logged in or has a valid token
+            $auth = $verificar_auth($request);
+            if (is_wp_error($auth)) {
+                return $auth;
+            }
+            // If they are authenticated (even as subscriber), they can see services
+            return true;
+        }
+    ));
+
+    // --- Endpoints de Configuración (MP Toggle) ---
+    register_rest_route('violett/v1', '/config/mp-status', array(
+        'methods' => 'GET',
+        'callback' => function() {
+            return new WP_REST_Response(array(
+                'enabled' => get_option('sr_mp_enabled', '1') === '1'
+            ), 200);
+        },
+        'permission_callback' => function() {
+            if (!is_user_logged_in()) {
+                return new WP_Error('rest_not_logged_in', 'Debes iniciar sesión.', array('status' => 401));
+            }
+            return current_user_can('manage_options') || current_user_can('editor');
+        }
+    ));
+
+    register_rest_route('violett/v1', '/config/mp-toggle', array(
+        'methods' => 'POST',
+        'callback' => function($request) {
+            $params = $request->get_json_params();
+            $enabled = isset($params['enabled']) ? $params['enabled'] : true;
+            update_option('sr_mp_enabled', $enabled ? '1' : '0');
+            return new WP_REST_Response(array(
+                'message' => $enabled ? 'Mercado Pago activado' : 'Mercado Pago desactivado',
+                'enabled' => (bool) $enabled
+            ), 200);
+        },
         'permission_callback' => function() {
             if (!is_user_logged_in()) {
                 return new WP_Error('rest_not_logged_in', 'Debes iniciar sesión.', array('status' => 401));
@@ -389,10 +796,20 @@ add_action('rest_api_init', function () {
             return current_user_can('manage_options') || current_user_can('editor');
         }
     ));
-
     register_rest_route('violett/v1', '/turno/(?P<id>\d+)', array(
         'methods' => 'DELETE',
         'callback' => 'borrar_turno_callback',
+        'permission_callback' => function() {
+            if (!is_user_logged_in()) {
+                return new WP_Error('rest_not_logged_in', 'Debes iniciar sesión.', array('status' => 401));
+            }
+            return current_user_can('manage_options') || current_user_can('editor');
+        }
+    ));
+
+    register_rest_route('violett/v1', '/turno/(?P<id>\d+)', array(
+        'methods' => 'PUT',
+        'callback' => 'actualizar_turno_callback',
         'permission_callback' => function() {
             if (!is_user_logged_in()) {
                 return new WP_Error('rest_not_logged_in', 'Debes iniciar sesión.', array('status' => 401));
@@ -412,10 +829,79 @@ add_action('rest_api_init', function () {
         }
     ));
 
+    register_rest_route('wp/v2', '/cancelar-reserva', array(
+        'methods' => 'POST',
+        'callback' => 'cancelar_reserva_callback',
+        'permission_callback' => '__return_true'
+    ));
+
+    register_rest_route('wp/v2', '/modificar-reserva', array(
+        'methods' => 'POST',
+        'callback' => 'modificar_reserva_callback',
+        'permission_callback' => '__return_true'
+    ));
+
+    // --- Endpoints de Paquetes/Créditos ---
+    register_rest_route('violett/v1', '/mis-paquetes', array(
+        'methods' => 'GET',
+        'callback' => 'obtener_mis_paquetes_callback',
+        'permission_callback' => $verificar_auth,
+    ));
+
+    register_rest_route('violett/v1', '/comprar-paquete', array(
+        'methods' => 'POST',
+        'callback' => 'comprar_paquete_cliente_callback',
+        'permission_callback' => $verificar_auth,
+    ));
+
+    register_rest_route('violett/v1', '/paquete', array(
+        'methods' => 'POST',
+        'callback' => 'crear_paquete_callback',
+        'permission_callback' => function() {
+            if (!is_user_logged_in()) {
+                return new WP_Error('rest_not_logged_in', 'Debes iniciar sesión.', array('status' => 401));
+            }
+            return current_user_can('manage_options') || current_user_can('editor');
+        }
+    ));
+
+    register_rest_route('violett/v1', '/paquete/(?P<id>\d+)', array(
+        'methods' => 'PUT',
+        'callback' => 'actualizar_paquete_callback',
+        'permission_callback' => function() {
+            if (!is_user_logged_in()) {
+                return new WP_Error('rest_not_logged_in', 'Debes iniciar sesión.', array('status' => 401));
+            }
+            return current_user_can('manage_options') || current_user_can('editor');
+        }
+    ));
+
+    register_rest_route('violett/v1', '/paquetes/todos', array(
+        'methods' => 'GET',
+        'callback' => 'obtener_paquetes_todos_callback',
+        'permission_callback' => function() {
+            if (!is_user_logged_in()) {
+                return new WP_Error('rest_not_logged_in', 'Debes iniciar sesión.', array('status' => 401));
+            }
+            return current_user_can('manage_options') || current_user_can('editor');
+        }
+    ));
+
+    register_rest_route('violett/v1', '/buscar-usuarios', array(
+        'methods' => 'GET',
+        'callback' => 'buscar_usuarios_callback',
+        'permission_callback' => function() {
+            if (!is_user_logged_in()) {
+                return new WP_Error('rest_not_logged_in', 'Debes iniciar sesión.', array('status' => 401));
+            }
+            return current_user_can('manage_options') || current_user_can('editor');
+        }
+    ));
+
     register_rest_route('wp/v2', '/disponibilidad', array(
         'methods' => 'GET',
         'callback' => 'consultar_disponibilidad_callback',
-        'permission_callback' => $verificar_nonce,
+        'permission_callback' => '__return_true',
     ));
 
     register_rest_route('wp/v2', '/reserva/pago-confirmado', array(
@@ -435,6 +921,77 @@ add_action('rest_api_init', function () {
         'callback' => 'cancelar_reserva_callback',
         'permission_callback' => $verificar_auth,
     ));
+
+    register_rest_route('violett/v1', '/negocio/horarios', array(
+        'methods' => 'GET',
+        'callback' => 'obtener_horarios_negocio_callback',
+        'permission_callback' => function() {
+            return current_user_can('manage_options');
+        }
+    ));
+
+    register_rest_route('violett/v1', '/negocio/horarios', array(
+        'methods' => 'POST',
+        'callback' => 'actualizar_horarios_negocio_callback',
+        'permission_callback' => function() {
+            return current_user_can('manage_options');
+        }
+    ));
+
+    register_rest_route('violett/v1', '/config/packages', array(
+        'methods' => 'GET',
+        'callback' => function() {
+            $options = get_option('sr_package_config');
+            if (empty($options)) {
+                $options = array(
+                    array('sessions' => 1, 'discount' => 0),
+                    array('sessions' => 5, 'discount' => (int)get_option('sr_discount_5', '10')),
+                    array('sessions' => 10, 'discount' => (int)get_option('sr_discount_10', '20'))
+                );
+            }
+            return new WP_REST_Response($options, 200);
+        },
+        'permission_callback' => '__return_true'
+    ));
+
+    register_rest_route('violett/v1', '/config/packages', array(
+        'methods' => 'POST',
+        'callback' => function($request) {
+            $params = $request->get_json_params();
+            if (!is_array($params)) {
+                return new WP_Error('invalid_data', 'Datos inválidos', array('status' => 400));
+            }
+            update_option('sr_package_config', $params);
+            return new WP_REST_Response(array('message' => 'Configuración guardada', 'options' => $params), 200);
+        },
+        'permission_callback' => function() {
+            return current_user_can('manage_options') || current_user_can('editor');
+        }
+    ));
+
+    // --- Theme Config Endpoints ---
+    register_rest_route('violett/v1', '/config/theme', array(
+        'methods' => 'GET',
+        'callback' => function() {
+            return new WP_REST_Response(get_option('sr_theme_config', array()), 200);
+        },
+        'permission_callback' => '__return_true'
+    ));
+
+    register_rest_route('violett/v1', '/config/theme', array(
+        'methods' => 'POST',
+        'callback' => function($request) {
+            $params = $request->get_json_params();
+            if (!is_array($params)) {
+                return new WP_Error('invalid_data', 'Datos inválidos', array('status' => 400));
+            }
+            update_option('sr_theme_config', $params);
+            return new WP_REST_Response(array('message' => 'Tema guardado', 'config' => $params), 200);
+        },
+        'permission_callback' => function() {
+            return current_user_can('manage_options') || current_user_can('editor');
+        }
+    ));
 });
 
 function mis_reservas_callback($request) {
@@ -452,7 +1009,7 @@ function mis_reservas_callback($request) {
 
     $args = array(
         'post_type' => 'reserva',
-        'post_status' => 'publish', // Solo las pagadas/confirmadas
+        'post_status' => array('publish', 'pending'), // Incluimos pendientes por si el pago no se procesó aún
         'posts_per_page' => -1,
         'meta_query' => array(
             array(
@@ -470,16 +1027,27 @@ function mis_reservas_callback($request) {
         while ($query->have_posts()) {
             $query->the_post();
             $post_id = get_the_ID();
-            $fields = get_fields($post_id);
-            $fecha = isset($fields['fecha']) ? $fields['fecha'] : '';
-            $hora = isset($fields['hora']) ? $fields['hora'] : '';
+            
+            // Fallback para campos si ACF no está disponible
+            $fecha = get_post_meta($post_id, 'fecha', true);
+            $hora = get_post_meta($post_id, 'hora', true);
+            $servicio_nombre = get_post_meta($post_id, 'servicio', true);
+
+            if (!$fecha || !$hora) {
+                // Si get_post_meta falla, intentamos get_fields
+                $fields = function_exists('get_fields') ? get_fields($post_id) : array();
+                $fecha = isset($fields['fecha']) ? $fields['fecha'] : $fecha;
+                $hora = isset($fields['hora']) ? $fields['hora'] : $hora;
+                $servicio_nombre = isset($fields['servicio']) ? $fields['servicio'] : $servicio_nombre;
+            }
 
             // Convert to timestamp
             $datetime_str = $fecha . ' ' . $hora;
             $timestamp = strtotime($datetime_str);
             $now = current_time('timestamp');
 
-            if ($timestamp >= $now) {
+            // Mostrar si es hoy o en el futuro (margen de 30 min por si ya empezó)
+            if ($timestamp >= ($now - 1800)) {
                 $token_cancelacion = get_post_meta($post_id, 'token_cancelacion', true);
                 if (empty($token_cancelacion)) {
                     $token_cancelacion = wp_generate_password(20, false);
@@ -488,11 +1056,12 @@ function mis_reservas_callback($request) {
 
                 $reservas[] = array(
                     'id' => $post_id,
-                    'servicio' => isset($fields['servicio']) ? $fields['servicio'] : '',
+                    'servicio' => $servicio_nombre,
                     'fecha' => $fecha,
                     'hora' => $hora,
                     'timestamp' => $timestamp,
-                    'token_cancelacion' => $token_cancelacion
+                    'token_cancelacion' => $token_cancelacion,
+                    'estado' => get_post_status($post_id)
                 );
             }
         }
@@ -527,15 +1096,28 @@ function cancelar_reserva_callback($request) {
         return new WP_Error('no_autorizado', 'No autorizado', array('status' => 403));
     }
 
-    $fecha = get_field('fecha', $reserva_id);
-    $hora = get_field('hora', $reserva_id);
+    $fecha = get_post_meta($reserva_id, 'fecha', true);
+    $hora = get_post_meta($reserva_id, 'hora', true);
+
+    if (!$fecha || !$hora) {
+        $fecha = get_field('fecha', $reserva_id);
+        $hora = get_field('hora', $reserva_id);
+    }
 
     $timestamp = strtotime($fecha . ' ' . $hora);
     $now = current_time('timestamp');
 
-    // Check if more than 12 hours away
-    if (($timestamp - $now) < 12 * 3600) {
-        return new WP_Error('muy_tarde', 'Solo se puede cancelar con más de 12hs de anticipación', array('status' => 400));
+    // Validar regla de 24 horas (margen de error de 5 min por si acaso)
+    if (($timestamp - $now) < (24 * 3600 - 300)) {
+        return new WP_Error('muy_tarde', 'Solo con 24hs de anticipacion se puede modificar o cancelar un turno', array('status' => 400));
+    }
+
+    // --- Devolución de Créditos ---
+    $paquete_id = get_post_meta($reserva_id, 'paquete_id_usado', true);
+    if ($paquete_id) {
+        $restantes = intval(get_field('sesiones_restantes', $paquete_id));
+        update_field('sesiones_restantes', $restantes + 1, $paquete_id);
+        update_field('estado', 'activo', $paquete_id); // Lo reactivamos por si estaba agotado
     }
 
     // Cancel in WP
@@ -549,6 +1131,68 @@ function cancelar_reserva_callback($request) {
     // Full Google Calendar sync would require storing the Google Event ID in post meta.
 
     return new WP_REST_Response(array('message' => 'Reserva cancelada'), 200);
+}
+
+function modificar_reserva_callback($request) {
+    $parametros = $request->get_json_params();
+    $reserva_id = isset($parametros['reserva_id']) ? intval($parametros['reserva_id']) : 0;
+    $email = isset($parametros['email']) ? sanitize_email($parametros['email']) : '';
+    $token = isset($parametros['token']) ? sanitize_text_field($parametros['token']) : '';
+    $nueva_fecha = isset($parametros['nueva_fecha']) ? sanitize_text_field($parametros['nueva_fecha']) : '';
+    $nueva_hora = isset($parametros['nueva_hora']) ? sanitize_text_field($parametros['nueva_hora']) : '';
+    $nueva_hora_fin = isset($parametros['nueva_hora_fin']) ? sanitize_text_field($parametros['nueva_hora_fin']) : '';
+
+    if (!$reserva_id || empty($email) || empty($token) || empty($nueva_fecha) || empty($nueva_hora)) {
+        return new WP_Error('parametros_invalidos', 'Parámetros inválidos', array('status' => 400));
+    }
+
+    $token_guardado = get_post_meta($reserva_id, 'token_cancelacion', true);
+    if (empty($token_guardado) || !hash_equals($token_guardado, $token)) {
+        return new WP_Error('no_autorizado', 'Token de cancelación inválido', array('status' => 403));
+    }
+
+    $email_guardado = get_field('email_cliente', $reserva_id);
+    if ($email_guardado !== $email) {
+        return new WP_Error('no_autorizado', 'No autorizado', array('status' => 403));
+    }
+
+    $fecha_actual = get_post_meta($reserva_id, 'fecha', true);
+    $hora_actual = get_post_meta($reserva_id, 'hora', true);
+
+    if (!$fecha_actual || !$hora_actual) {
+        $fecha_actual = get_field('fecha', $reserva_id);
+        $hora_actual = get_field('hora', $reserva_id);
+    }
+
+    $timestamp = strtotime($fecha_actual . ' ' . $hora_actual);
+    $now = current_time('timestamp');
+
+    // Validar regla de 24 horas
+    if (($timestamp - $now) < (24 * 3600 - 300)) {
+        return new WP_Error('muy_tarde', 'Solo con 24hs de anticipacion se puede modificar o cancelar un turno', array('status' => 400));
+    }
+
+    // Actualizar campos ACF
+    update_field('fecha', $nueva_fecha, $reserva_id);
+    update_field('hora', $nueva_hora, $reserva_id);
+    if (!empty($nueva_hora_fin)) {
+        update_field('hora_fin', $nueva_hora_fin, $reserva_id);
+    }
+
+    // Opcional: Insertar en el calendario un nuevo evento (quedará huérfano el viejo)
+    $cliente = get_field('cliente', $reserva_id);
+    $servicio = get_field('servicio', $reserva_id);
+    $reserva_data = array(
+        'cliente' => $cliente,
+        'inicio' => $nueva_fecha . 'T' . $nueva_hora . ':00-03:00',
+        'fin' => $nueva_fecha . 'T' . ($nueva_hora_fin ?: $nueva_hora) . ':00-03:00',
+        'servicio' => $servicio
+    );
+    try {
+        insertar_en_calendario_negocio($reserva_data);
+    } catch (Exception $e) {}
+
+    return new WP_REST_Response(array('message' => 'Reserva modificada exitosamente'), 200);
 }
 
 function webhook_pago_confirmado_callback($request) {
@@ -588,23 +1232,33 @@ function webhook_pago_confirmado_callback($request) {
                     'post_status' => 'publish'
                 ));
 
-                // Fetch details to insert into Google Calendar
-                $cliente = get_field('cliente', $post_id);
-                $fecha = get_field('fecha', $post_id);
-                $hora = get_field('hora', $post_id);
-                $hora_fin = get_field('hora_fin', $post_id);
-                $servicio = get_field('servicio', $post_id);
+                $tipo = get_post_type($post_id);
 
-                $reserva_data = array(
-                    'cliente' => $cliente,
-                    'inicio' => $fecha . 'T' . $hora . ':00-03:00',
-                    'fin' => $fecha . 'T' . ($hora_fin ?: $hora) . ':00-03:00',
-                    'servicio' => $servicio
-                );
+                if ($tipo === 'reserva') {
+                    // Fetch details to insert into Google Calendar
+                    $cliente = get_field('cliente', $post_id);
+                    $fecha = get_field('fecha', $post_id);
+                    $hora = get_field('hora', $post_id);
+                    $hora_fin = get_field('hora_fin', $post_id);
+                    $servicio = get_field('servicio', $post_id);
 
-                insertar_en_calendario_negocio($reserva_data);
+                    $reserva_data = array(
+                        'cliente' => $cliente,
+                        'inicio' => $fecha . 'T' . $hora . ':00-03:00',
+                        'fin' => $fecha . 'T' . ($hora_fin ?: $hora) . ':00-03:00',
+                        'servicio' => $servicio
+                    );
 
-                return new WP_REST_Response('Payment approved and event scheduled', 200);
+                    insertar_en_calendario_negocio($reserva_data);
+                    return new WP_REST_Response('Payment approved and event scheduled', 200);
+
+                } else if ($tipo === 'paquete_cliente') {
+                    // Activar el paquete
+                    update_field('estado', 'activo', $post_id);
+                    return new WP_REST_Response('Payment approved and package activated', 200);
+                }
+
+                return new WP_REST_Response('Payment approved but type unknown', 200);
             }
         }
 
@@ -701,17 +1355,45 @@ function guardar_reserva_callback($request) {
     $cliente    = isset($parametros['cliente']) ? sanitize_text_field($parametros['cliente']) : '';
 
     $usar_credito = isset($parametros['usar_credito']) ? $parametros['usar_credito'] : false;
+    $paquete_id_usado = null;
 
     if ($usar_credito && $user) {
-        $creditos = get_user_meta($user->ID, 'creditos_servicios', true);
-        if (!is_array($creditos)) $creditos = array();
+        // Buscar paquete activo del usuario para este servicio (CPT paquete_cliente)
+        $paquetes = get_posts(array(
+            'post_type'      => 'paquete_cliente',
+            'posts_per_page' => 1,
+            'post_status'    => 'publish',
+            'meta_query'     => array(
+                'relation' => 'AND',
+                array('key' => 'user_id_vinculado', 'value' => $user->ID, 'compare' => '=', 'type' => 'NUMERIC'),
+                array('key' => 'servicio_vinculado', 'value' => $servicioId, 'compare' => '=', 'type' => 'NUMERIC'),
+                array('key' => 'estado', 'value' => 'activo', 'compare' => '='),
+                array('key' => 'sesiones_restantes', 'value' => 0, 'compare' => '>', 'type' => 'NUMERIC'),
+            ),
+            'orderby'  => 'meta_value',
+            'meta_key' => 'fecha_compra',
+            'order'    => 'ASC', // Usar el paquete más viejo primero
+        ));
 
-        if (isset($creditos[$servicioId]) && $creditos[$servicioId] > 0) {
-            $creditos[$servicioId] -= 1;
-            update_user_meta($user->ID, 'creditos_servicios', $creditos);
+        if (!empty($paquetes)) {
+            $paq = $paquetes[0];
+            // Verificar vencimiento (30 días)
+            $fecha_compra = get_field('fecha_compra', $paq->ID);
+            $vencimiento = strtotime($fecha_compra . ' +30 days');
+            if (time() > $vencimiento) {
+                update_field('estado', 'vencido', $paq->ID);
+                return new WP_Error('paquete_vencido', 'Tu paquete de créditos ha vencido.', array('status' => 400));
+            }
+
+            $restantes = intval(get_field('sesiones_restantes', $paq->ID));
+            update_field('sesiones_restantes', $restantes - 1, $paq->ID);
+            if ($restantes - 1 <= 0) {
+                update_field('estado', 'agotado', $paq->ID);
+            }
+            $paquete_id_usado = $paq->ID;
             $post_status = 'publish'; // Aprobado automáticamente
         } else {
-            return new WP_Error('sin_creditos', 'No tienes créditos suficientes para este servicio', array('status' => 400));
+            return new WP_Error('sin_creditos', 'No tienes créditos activos para este servicio.', array('status' => 400));
         }
     } else {
         $post_status = 'pending';
@@ -728,6 +1410,7 @@ function guardar_reserva_callback($request) {
         // Guardamos los datos en ACF / Post meta. 
         update_field('cliente', $cliente, $post_id);
         update_field('email_cliente', $email, $post_id);
+        update_post_meta($post_id, 'paquete_id_usado', $paquete_id_usado);
 
         $token_cancelacion = wp_generate_password(20, false);
         update_post_meta($post_id, 'token_cancelacion', $token_cancelacion);
@@ -745,8 +1428,37 @@ function guardar_reserva_callback($request) {
                 'fin' => $fecha . 'T' . ($hora_fin ?: $hora) . ':00-03:00',
                 'servicio' => $servicio
             );
-            insertar_en_calendario_negocio($reserva_data);
+            try {
+                insertar_en_calendario_negocio($reserva_data);
+            } catch (\Exception $e) {
+                // El error de calendario no debe bloquear la reserva con crédito
+                error_log("Error Calendar (Wallet): " . $e->getMessage());
+            }
             return new WP_REST_Response(array('message' => 'Reserva guardada con créditos', 'id' => $post_id, 'method' => 'wallet'), 200);
+        }
+
+        // Verificar si Mercado Pago está habilitado
+        $mp_enabled = get_option('sr_mp_enabled', '1');
+
+        if ($mp_enabled !== '1') {
+            // MP desactivado: publicar directamente sin cobrar
+            wp_update_post(array(
+                'ID' => $post_id,
+                'post_status' => 'publish'
+            ));
+
+            $reserva_data = array(
+                'cliente' => $cliente,
+                'inicio' => $fecha . 'T' . $hora . ':00-03:00',
+                'fin' => $fecha . 'T' . ($hora_fin ?: $hora) . ':00-03:00',
+                'servicio' => $servicio
+            );
+            try {
+                insertar_en_calendario_negocio($reserva_data);
+            } catch (Exception $e) {
+                // Calendar fail is non-blocking
+            }
+            return new WP_REST_Response(array('message' => 'Reserva confirmada (sin cobro)', 'id' => $post_id, 'method' => 'free'), 200);
         }
 
         // Obtener el precio del servicio para Mercado Pago
@@ -846,19 +1558,24 @@ function auth_google_callback($request) {
         $client = new \Google\Client();
         $client_id = get_option('sr_google_client_id');
         if (empty($client_id)) {
-            $client_id = '57411239751-805cvkqrq4i46f0n37abslrqfkbrtg42.apps.googleusercontent.com'; // Default client ID from WP code
+            $client_id = '57411239751-805cvkqrq4i46f0n37abslrqfkbrtg42.apps.googleusercontent.com'; 
         }
         $client->setClientId($client_id);
 
-        $payload = $client->verifyIdToken($token);
-        if (!$payload) {
-             return new WP_Error('token_invalido', 'El token de Google proporcionado es inválido o ha expirado.', array('status' => 401));
+        // Intentamos verificar como Access Token (flujo OAuth2)
+        // ya que el frontend usa initTokenClient que devuelve Access Tokens, no ID Tokens (JWT)
+        $client->setAccessToken($token);
+        $oauth2 = new \Google\Service\Oauth2($client);
+        $userInfo = $oauth2->userinfo->get();
+
+        if (!$userInfo || empty($userInfo->email)) {
+             return new WP_Error('token_invalido', 'No se pudo obtener información del usuario con el token provisto.', array('status' => 401));
         }
 
-        $email = sanitize_email($payload['email']);
-        $nombre = sanitize_text_field($payload['name']);
+        $email = sanitize_email($userInfo->email);
+        $nombre = sanitize_text_field($userInfo->name);
     } catch (\Exception $e) {
-        return new WP_Error('token_invalido', 'Error al verificar el token de Google: ' . $e->getMessage(), array('status' => 401));
+        return new WP_Error('token_invalido', 'Error al verificar el token de Google (Access Token): ' . $e->getMessage(), array('status' => 401));
     }
 
     if (empty($email)) {
@@ -882,21 +1599,45 @@ function auth_google_callback($request) {
         $user_id = $user->ID;
     }
 
-    // Autenticar al usuario en WordPress
+    // Autenticar al usuario en WordPress (Handshake de Sesión)
+    wp_clear_auth_cookie();
     wp_set_current_user($user_id);
+    wp_set_auth_cookie($user_id, true);
+    do_action('wp_login', $user->user_login, $user);
 
-    // Manage session tokens properly so nonce generation works
-    $manager = WP_Session_Tokens::get_instance($user_id);
-    $session_token = $manager->create(time() + 14 * DAY_IN_SECONDS);
-    wp_set_auth_cookie($user_id, false, '', $session_token);
-    $_COOKIE[LOGGED_IN_COOKIE] = wp_generate_auth_cookie($user_id, time() + 14 * DAY_IN_SECONDS, 'logged_in', $session_token);
-
+    // Generar un nuevo Nonce válido para el usuario autenticado
     $nonce = wp_create_nonce('wp_rest');
 
-    // Obtener créditos (wallet)
-    $creditos = get_user_meta($user_id, 'creditos_servicios', true);
-    if (!is_array($creditos)) {
-        $creditos = array();
+    // Obtener créditos desde CPT paquete_cliente
+    $paquetes = get_posts(array(
+        'post_type'      => 'paquete_cliente',
+        'posts_per_page' => -1,
+        'post_status'    => 'publish',
+        'meta_query'     => array(
+            'relation' => 'AND',
+            array('key' => 'user_id_vinculado', 'value' => $user_id, 'compare' => '=', 'type' => 'NUMERIC'),
+            array('key' => 'estado', 'value' => 'activo', 'compare' => '='),
+        ),
+    ));
+
+    $creditos = array();
+    foreach ($paquetes as $paq) {
+        $srv_id = get_field('servicio_vinculado', $paq->ID);
+        $restantes = intval(get_field('sesiones_restantes', $paq->ID));
+        if ($restantes > 0) {
+            if (isset($creditos[$srv_id])) {
+                $creditos[$srv_id] += $restantes;
+            } else {
+                $creditos[$srv_id] = $restantes;
+            }
+        }
+    }
+
+    // Generate Custom Violett Token for robust API auth
+    $violett_token = get_user_meta($user_id, 'violett_api_token', true);
+    if (empty($violett_token)) {
+        $violett_token = wp_generate_password(32, false);
+        update_user_meta($user_id, 'violett_api_token', $violett_token);
     }
 
     return new WP_REST_Response(array(
@@ -904,7 +1645,8 @@ function auth_google_callback($request) {
         'email' => $user->user_email,
         'nombre' => $user->first_name,
         'creditos' => $creditos,
-        'nonce' => $nonce
+        'nonce' => $nonce,
+        'violett_token' => $violett_token
     ), 200);
 }
 
@@ -1051,6 +1793,59 @@ function borrar_turno_callback($request) {
     }
 }
 
+/**
+ * Actualiza un turno existente (Uso exclusivo del panel de negocio).
+ */
+function actualizar_turno_callback($request) {
+    $id = $request->get_param('id');
+    $parametros = $request->get_json_params();
+
+    if (!$id) {
+        return new WP_Error('no_id', 'ID de turno no proporcionado.', array('status' => 400));
+    }
+
+    $cliente  = isset($parametros['cliente']) ? sanitize_text_field($parametros['cliente']) : '';
+    $email    = isset($parametros['email']) ? sanitize_email($parametros['email']) : '';
+    $fecha    = isset($parametros['fecha']) ? sanitize_text_field($parametros['fecha']) : '';
+    $hora     = isset($parametros['hora']) ? sanitize_text_field($parametros['hora']) : '';
+    $hora_fin = isset($parametros['hora_fin']) ? sanitize_text_field($parametros['hora_fin']) : '';
+    $servicio = isset($parametros['servicio']) ? sanitize_text_field($parametros['servicio']) : '';
+
+    if (empty($cliente) || empty($fecha) || empty($hora) || empty($servicio)) {
+        return new WP_Error('missing_data', 'Faltan datos requeridos.', array('status' => 400));
+    }
+
+    // Actualizar título y campos ACF
+    wp_update_post(array(
+        'ID'         => $id,
+        'post_title' => 'Reserva: ' . $email . ' - ' . $hora,
+    ));
+
+    update_field('cliente', $cliente, $id);
+    update_field('email_cliente', $email, $id);
+    update_field('fecha', $fecha, $id);
+    update_field('hora', $hora, $id);
+    update_field('hora_fin', $hora_fin, $id);
+    update_field('servicio', $servicio, $id);
+
+    // Opcional: Sync con Google Calendar
+    $reserva_data = array(
+        'cliente'  => $cliente,
+        'inicio'   => $fecha . 'T' . $hora . ':00-03:00',
+        'fin'      => $fecha . 'T' . ($hora_fin ?: $hora) . ':00-03:00',
+        'servicio' => $servicio
+    );
+    try {
+        if (function_exists('insertar_en_calendario_negocio')) {
+            insertar_en_calendario_negocio($reserva_data);
+        }
+    } catch (Exception $e) {
+        return new WP_REST_Response(array('message' => 'Turno actualizado en WP, pero falló sync con Google: ' . $e->getMessage()), 207);
+    }
+
+    return new WP_REST_Response(array('message' => 'Turno actualizado exitosamente.'), 200);
+}
+
 function crear_turno_manual_callback($request) {
     $parametros = $request->get_json_params();
 
@@ -1096,4 +1891,319 @@ function crear_turno_manual_callback($request) {
     } else {
         return new WP_Error('insert_failed', 'Error al crear el turno en WordPress.', array('status' => 500));
     }
+}
+
+// --- Callbacks de Paquetes/Créditos ---
+
+function obtener_mis_paquetes_callback($request) {
+    $user_id = get_current_user_id();
+    if (!$user_id) {
+        return new WP_Error('no_autorizado', 'Debes iniciar sesión', array('status' => 401));
+    }
+
+    $args = array(
+        'post_type'      => 'paquete_cliente',
+        'posts_per_page' => -1,
+        'post_status'    => 'publish',
+        'meta_query'     => array(
+            array(
+                'key'   => 'user_id_vinculado',
+                'value' => $user_id,
+                'compare' => '=',
+            ),
+        ),
+    );
+
+    $posts = get_posts($args);
+    $paquetes = array();
+
+    foreach ($posts as $post) {
+        $fields = function_exists('get_fields') ? get_fields($post->ID) : array();
+        $servicio_id = isset($fields['servicio_vinculado']) ? $fields['servicio_vinculado'] : 0;
+        $servicio_nombre = '';
+        if ($servicio_id) {
+            $srv = get_post($servicio_id);
+            $servicio_nombre = $srv ? $srv->post_title : 'Servicio #' . $servicio_id;
+        }
+
+        $fecha_compra = isset($fields['fecha_compra']) ? $fields['fecha_compra'] : '';
+        $fecha_vencimiento = $fecha_compra ? date('Y-m-d', strtotime($fecha_compra . ' +30 days')) : '';
+
+        $paquetes[] = array(
+            'id'                  => $post->ID,
+            'servicio_id'         => $servicio_id,
+            'servicio_nombre'     => $servicio_nombre,
+            'sesiones_totales'    => isset($fields['sesiones_totales']) ? intval($fields['sesiones_totales']) : 0,
+            'sesiones_restantes'  => isset($fields['sesiones_restantes']) ? intval($fields['sesiones_restantes']) : 0,
+            'fecha_compra'        => $fecha_compra,
+            'fecha_vencimiento'   => $fecha_vencimiento,
+            'estado'              => isset($fields['estado']) ? $fields['estado'] : 'activo',
+        );
+    }
+
+    return new WP_REST_Response($paquetes, 200);
+}
+
+function crear_paquete_callback($request) {
+    $parametros = $request->get_json_params();
+
+    $user_id     = isset($parametros['user_id']) ? intval($parametros['user_id']) : 0;
+    $servicio_id = isset($parametros['servicio_id']) ? intval($parametros['servicio_id']) : 0;
+    $sesiones    = isset($parametros['sesiones']) ? intval($parametros['sesiones']) : 1;
+
+    if (!$user_id || !$servicio_id || $sesiones < 1) {
+        return new WP_Error('datos_invalidos', 'Faltan datos requeridos (user_id, servicio_id, sesiones).', array('status' => 400));
+    }
+
+    $user = get_user_by('id', $user_id);
+    if (!$user) {
+        return new WP_Error('usuario_no_encontrado', 'Usuario no encontrado.', array('status' => 404));
+    }
+
+    $servicio = get_post($servicio_id);
+    if (!$servicio || $servicio->post_type !== 'servicio') {
+        return new WP_Error('servicio_no_encontrado', 'Servicio no encontrado.', array('status' => 404));
+    }
+
+    $post_id = wp_insert_post(array(
+        'post_title'  => 'Paquete: ' . $user->display_name . ' - ' . $servicio->post_title,
+        'post_type'   => 'paquete_cliente',
+        'post_status' => 'publish',
+    ));
+
+    if (is_wp_error($post_id)) {
+        return new WP_Error('error_guardado', 'No se pudo crear el paquete.', array('status' => 500));
+    }
+
+    update_field('user_id_vinculado', $user_id, $post_id);
+    update_field('servicio_vinculado', $servicio_id, $post_id);
+    update_field('sesiones_totales', $sesiones, $post_id);
+    update_field('sesiones_restantes', $sesiones, $post_id);
+    update_field('fecha_compra', date('Y-m-d'), $post_id);
+    update_field('estado', 'activo', $post_id);
+
+    return new WP_REST_Response(array(
+        'message' => 'Paquete creado exitosamente.',
+        'id'      => $post_id,
+    ), 200);
+}
+
+function comprar_paquete_cliente_callback($request) {
+    $user_id = get_current_user_id();
+    if (!$user_id) {
+        return new WP_Error('no_autorizado', 'Debes iniciar sesión', array('status' => 401));
+    }
+
+    $parametros = $request->get_json_params();
+    $servicio_id = isset($parametros['servicio_id']) ? intval($parametros['servicio_id']) : 0;
+    $sesiones    = isset($parametros['sesiones']) ? intval($parametros['sesiones']) : 0;
+
+    if (!$servicio_id || $sesiones < 1) {
+        return new WP_Error('datos_invalidos', 'Faltan datos requeridos.', array('status' => 400));
+    }
+
+    $servicio = get_post($servicio_id);
+    if (!$servicio || $servicio->post_type !== 'servicio') {
+        return new WP_Error('servicio_no_encontrado', 'Servicio no encontrado.', array('status' => 404));
+    }
+
+    $user = get_user_by('id', $user_id);
+
+    $mp_enabled = get_option('sr_mp_enabled', '1') === '1';
+    $post_status = $mp_enabled ? 'pending' : 'publish';
+
+    $post_id = wp_insert_post(array(
+        'post_title'  => 'Paquete (Web): ' . $user->display_name . ' - ' . $servicio->post_title,
+        'post_type'   => 'paquete_cliente',
+        'post_status' => $post_status,
+    ));
+
+    if (is_wp_error($post_id)) {
+        return new WP_Error('error_guardado', 'No se pudo crear el paquete.', array('status' => 500));
+    }
+
+    update_field('user_id_vinculado', $user_id, $post_id);
+    update_field('servicio_vinculado', $servicio_id, $post_id);
+    update_field('sesiones_totales', $sesiones, $post_id);
+    update_field('sesiones_restantes', $sesiones, $post_id);
+    update_field('fecha_compra', date('Y-m-d'), $post_id);
+    update_field('estado', $mp_enabled ? 'pendiente' : 'activo', $post_id);
+
+    if (!$mp_enabled) {
+        return new WP_REST_Response(array('message' => 'Paquete activado (sin cobro)', 'id' => $post_id, 'method' => 'free'), 200);
+    }
+
+    // Mercado Pago
+    $precio_servicio = get_post_meta($servicio_id, 'precio', true);
+    if (empty($precio_servicio)) $precio_servicio = 1000;
+    
+    // Multiplicamos el precio por la cantidad de sesiones (Precio base del paquete)
+    $precio_total = floatval($precio_servicio) * $sesiones;
+
+    $mp_access_token = get_option('sr_mp_access_token');
+    if (!empty($mp_access_token)) {
+        \MercadoPago\MercadoPagoConfig::setAccessToken($mp_access_token);
+        $client = new \MercadoPago\Client\Preference\PreferenceClient();
+
+        $preference_data = array(
+            "items" => array(
+                array(
+                    "title" => "Paquete de " . $sesiones . " sesiones - " . $servicio->post_title,
+                    "quantity" => 1,
+                    "unit_price" => $precio_total
+                )
+            ),
+            "external_reference" => (string) $post_id,
+            "notification_url" => rest_url('wp/v2/reserva/pago-confirmado'),
+            "back_urls" => array(
+                "success" => home_url(),
+                "failure" => home_url('?payment=failed'),
+                "pending" => home_url('?payment=failed')
+            ),
+            "auto_return" => "approved"
+        );
+
+        try {
+            $preference = $client->create($preference_data);
+            return new WP_REST_Response(array('message' => 'Paquete pendiente de pago', 'id' => $post_id, 'init_point' => $preference->init_point), 200);
+        } catch (Exception $e) {
+            return new WP_Error('mp_error', 'Error MP: ' . $e->getMessage(), array('status' => 500));
+        }
+    }
+
+    return new WP_REST_Response(array('message' => 'Paquete guardado pero MP no configurado', 'id' => $post_id), 200);
+}
+
+function actualizar_paquete_callback($request) {
+    $id = $request->get_param('id');
+    $parametros = $request->get_json_params();
+
+    if (!$id) {
+        return new WP_Error('no_id', 'ID de paquete no proporcionado.', array('status' => 400));
+    }
+
+    $post = get_post($id);
+    if (!$post || $post->post_type !== 'paquete_cliente') {
+        return new WP_Error('no_paquete', 'Paquete no encontrado.', array('status' => 404));
+    }
+
+    if (isset($parametros['sesiones_restantes'])) {
+        update_field('sesiones_restantes', intval($parametros['sesiones_restantes']), $id);
+    }
+    if (isset($parametros['sesiones_totales'])) {
+        update_field('sesiones_totales', intval($parametros['sesiones_totales']), $id);
+    }
+    if (isset($parametros['estado'])) {
+        update_field('estado', sanitize_text_field($parametros['estado']), $id);
+    }
+
+    return new WP_REST_Response(array('message' => 'Paquete actualizado exitosamente.'), 200);
+}
+
+function obtener_paquetes_todos_callback($request) {
+    $args = array(
+        'post_type'      => 'paquete_cliente',
+        'posts_per_page' => -1,
+        'post_status'    => 'publish',
+    );
+    $posts = get_posts($args);
+    $paquetes = array();
+
+    foreach ($posts as $post) {
+        $fields = function_exists('get_fields') ? get_fields($post->ID) : array();
+        $user_id = isset($fields['user_id_vinculado']) ? intval($fields['user_id_vinculado']) : 0;
+        $user = get_user_by('id', $user_id);
+
+        $servicio_id = isset($fields['servicio_vinculado']) ? $fields['servicio_vinculado'] : 0;
+        $servicio_nombre = '';
+        if ($servicio_id) {
+            $srv = get_post($servicio_id);
+            $servicio_nombre = $srv ? $srv->post_title : 'Servicio #' . $servicio_id;
+        }
+
+        $fecha_compra = isset($fields['fecha_compra']) ? $fields['fecha_compra'] : '';
+        $fecha_vencimiento = $fecha_compra ? date('Y-m-d', strtotime($fecha_compra . ' +30 days')) : '';
+
+        $paquetes[] = array(
+            'id'                  => $post->ID,
+            'user_id'             => $user_id,
+            'cliente_nombre'      => $user ? $user->display_name : 'Usuario #' . $user_id,
+            'cliente_email'       => $user ? $user->user_email : '',
+            'servicio_id'         => $servicio_id,
+            'servicio_nombre'     => $servicio_nombre,
+            'sesiones_totales'    => isset($fields['sesiones_totales']) ? intval($fields['sesiones_totales']) : 0,
+            'sesiones_restantes'  => isset($fields['sesiones_restantes']) ? intval($fields['sesiones_restantes']) : 0,
+            'fecha_compra'        => $fecha_compra,
+            'fecha_vencimiento'   => $fecha_vencimiento,
+            'estado'              => isset($fields['estado']) ? $fields['estado'] : 'activo',
+        );
+    }
+
+    return new WP_REST_Response($paquetes, 200);
+}
+
+function buscar_usuarios_callback($request) {
+    $query = sanitize_text_field($request->get_param('q'));
+    if (empty($query) || strlen($query) < 2) {
+        return new WP_REST_Response(array(), 200);
+    }
+
+    $user_query = new WP_User_Query(array(
+        'search'         => '*' . $query . '*',
+        'search_columns' => array('user_login', 'user_email', 'display_name'),
+        'number'         => 10,
+    ));
+
+    $results = array();
+    foreach ($user_query->get_results() as $user) {
+        $results[] = array(
+            'id'    => $user->ID,
+            'name'  => $user->display_name,
+            'email' => $user->user_email,
+        );
+    }
+
+    return new WP_REST_Response($results, 200);
+}
+
+function obtener_horarios_negocio_callback($request) {
+    $id = 2; // ID de configuración del negocio
+    $dias = ['lun', 'mar', 'mie', 'jue', 'vie', 'sab', 'dom'];
+    $data = array();
+
+    foreach ($dias as $dia) {
+        $data[$dia] = array(
+            'status' => get_field($dia . '_status', $id),
+            'ap' => get_field($dia . '_ap', $id),
+            'ci' => get_field($dia . '_ci', $id),
+            'br_i' => get_field($dia . '_br_i', $id),
+            'br_f' => get_field($dia . '_br_f', $id),
+        );
+    }
+
+    return new WP_REST_Response($data, 200);
+}
+
+function actualizar_horarios_negocio_callback($request) {
+    $id = 2;
+    $parametros = $request->get_json_params();
+    $dia = isset($parametros['dia']) ? sanitize_text_field($parametros['dia']) : '';
+    $datos = isset($parametros['datos']) ? $parametros['datos'] : array();
+
+    if (empty($dia) || empty($datos)) {
+        return new WP_Error('faltan_datos', 'Falta día o datos.', array('status' => 400));
+    }
+
+    $valid_dias = ['lun', 'mar', 'mie', 'jue', 'vie', 'sab', 'dom'];
+    if (!in_array($dia, $valid_dias)) {
+        return new WP_Error('dia_invalido', 'Día inválido.', array('status' => 400));
+    }
+
+    if (isset($datos['status']) !== null) update_field($dia . '_status', $datos['status'], $id);
+    if (isset($datos['ap'])) update_field($dia . '_ap', $datos['ap'], $id);
+    if (isset($datos['ci'])) update_field($dia . '_ci', $datos['ci'], $id);
+    if (isset($datos['br_i'])) update_field($dia . '_br_i', $datos['br_i'], $id);
+    if (isset($datos['br_f'])) update_field($dia . '_br_f', $datos['br_f'], $id);
+
+    return new WP_REST_Response(array('message' => 'Horarios actualizados para ' . $dia), 200);
 }

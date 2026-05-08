@@ -143,15 +143,17 @@ async function confirmarReservaFinal() {
         const wpResponse = await guardarReservaEnWP(datosReserva);
         if (!wpResponse || !wpResponse.ok) throw new Error("Error al guardar en la base de datos de WordPress.");
 
-        // 2. Redirigir a Mercado Pago o mostrar éxito si se usó crédito
-        if (wpResponse.method === 'wallet') {
+        // 2. Redirigir a Mercado Pago o mostrar éxito si se usó crédito / MP desactivado
+        if (wpResponse.method === 'wallet' || wpResponse.method === 'free') {
             mostrarPantallaExito({
                 servicio: window.servicioSeleccionado,
                 fecha: window.fechaSeleccionada,
                 hora: window.horarioSeleccionado
             });
-            // Update local credits
-            window.clienteCreditos[window.servicioId] -= 1;
+            // Update local credits if used
+            if (wpResponse.method === 'wallet' && window.clienteCreditos && window.clienteCreditos[window.servicioId]) {
+                window.clienteCreditos[window.servicioId] -= 1;
+            }
         } else if (wpResponse.init_point) {
             window.location.href = wpResponse.init_point;
         } else {
